@@ -1,0 +1,18 @@
+apiVersion: v1alpha1
+kind: Role
+metadata:
+  name: comment-ai-autopilot-role-manage
+  labels:
+    halo.run/role-template: "true"
+  annotations:
+    rbac.authorization.halo.run/module: "Comment AI Autopilot Management"
+    rbac.authorization.halo.run/display-name: "AI回评管理"
+    rbac.authorization.halo.run/ui-permissions: |
+      ["plugin:comment-ai-autopilot:manage"]
+rules:
+  - apiGroups: ["comment-ai-autopilot.nxxy335.top"]
+    resources: ["comment-ai-autopilot/aicommentreplies"]
+    verbs: ["*"]
+  - apiGroups: ["console.api.comment-ai-autopilot.nxxy335.top"]
+    resources: ["*"]
+    verbs: ["*"]

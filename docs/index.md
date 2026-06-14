@@ -1,0 +1,25 @@
+---
+layout: home
+
+hero:
+  name: AI回评
+  text: Halo 智能评论回复插件
+  tagline: 自动分析评论情感，生成自然、贴切的AI回复
+  actions:
+    - theme: brand
+      text: 开始使用
+      link: /guide/introduction
+    - theme: alt
+      text: 配置指南
+      link: /guide/settings
+
+features:
+  - title: 自动回复
+    details: 监听新评论，自动调用AI生成回复，支持对话式上下文
+  - title: 情感分析
+    details: 分析评论情感倾向，根据正面/中性/负面调整回复语气
+  - title: 草稿模式
+    details: AI回复先存为草稿，管理员审核后再发布
+  - title: 灵活过滤
+    details: 文章/页面级开关控制，评论者黑名单
+---

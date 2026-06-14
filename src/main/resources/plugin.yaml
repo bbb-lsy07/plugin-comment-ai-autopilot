@@ -1,0 +1,27 @@
+# Refer https://docs.halo.run/developer-guide/plugin/basics/manifest
+
+apiVersion: plugin.halo.run/v1alpha1
+kind: Plugin
+metadata:
+  # The name defines how the plugin is invoked, A unique name
+  name: comment-ai-autopilot
+spec:
+  enabled: true
+  requires: ">=2.23.0"
+  author:
+    name: 暖心向阳335
+    website: https://github.com/暖心向阳335
+  logo: logo.png
+  homepage: https://github.com/暖心向阳335/comment-ai-autopilot#readme
+  repo: https://github.com/暖心向阳335/comment-ai-autopilot
+  issues: https://github.com/暖心向阳335/comment-ai-autopilot/issues
+  displayName: "AI回评"
+  description: "基于 AI 的 Halo 博客评论自动回复插件，支持 AI 虚拟角色回复、自审核、自动发布和对话式连续回复"
+  license:
+    - name: "GPL-3.0"
+      url: "https://github.com/暖心向阳335/comment-ai-autopilot/blob/main/LICENSE"
+  settingName: "comment-ai-autopilot-settings"
+  configMapName: "comment-ai-autopilot-configmap"
+  version: "0.0.1-w5s2t7"
+  pluginDependencies:
+    ai-foundation?: "*"

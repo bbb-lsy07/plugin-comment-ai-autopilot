@@ -1,0 +1,29 @@
+apiVersion: v1alpha1
+kind: AnnotationSetting
+metadata:
+  name: comment-ai-autopilot-post-annotation-setting
+spec:
+  targetRef:
+    group: content.halo.run
+    kind: Post
+  formSchema:
+    - $formkit: switch
+      name: comment-ai-autopilot.nxxy335.top/ai-reply-enabled
+      label: 启用AI回评
+      value: true
+      help: 开启后，该文章收到评论时将自动触发AI回复
+---
+apiVersion: v1alpha1
+kind: AnnotationSetting
+metadata:
+  name: comment-ai-autopilot-single-page-annotation-setting
+spec:
+  targetRef:
+    group: content.halo.run
+    kind: SinglePage
+  formSchema:
+    - $formkit: switch
+      name: comment-ai-autopilot.nxxy335.top/ai-reply-enabled
+      label: 启用AI回评
+      value: false
+      help: 开启后，该页面收到评论时将自动触发AI回复
