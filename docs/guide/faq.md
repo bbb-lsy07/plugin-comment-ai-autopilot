@@ -12,7 +12,7 @@
 
 1. 确认在插件设置中填写了AI角色邮箱
 2. 邮箱需要在 [Gravatar](https://gravatar.com) 上注册并设置头像
-3. 插件使用 [Cravatar](https://cravatar.cn) 作为Gravatar镜像服务
+3. 插件使用 [Cravatar](https://cn.cravatar.com) 作为Gravatar镜像服务
 
 ## 评论没有触发AI回复？
 

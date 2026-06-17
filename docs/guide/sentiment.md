@@ -13,9 +13,9 @@
 ## 工作原理
 
 1. 评论通过过滤检查后，调用AI对评论内容进行情感分析
-2. AI返回情感分类结果（POSITIVE / NEUTRAL / NEGATIVE）
+2. AI 使用结构化输出（`OutputSpec.choice`）返回情感分类结果（POSITIVE / NEUTRAL / NEGATIVE）
 3. 如果情感分析失败（如AI不可用），默认降级为 NEUTRAL
-4. 情感结果传入 PromptBuilder，在生成Prompt时注入对应的语气提示
+4. 情感结果传入 PromptBuilder，在生成Prompt时追加对应的语气提示
 5. 情感结果同时记录在 `AiCommentReply` 的 `sentiment` 字段中
 
 ## 日志展示

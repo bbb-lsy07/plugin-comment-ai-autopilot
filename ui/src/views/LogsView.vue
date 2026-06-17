@@ -10,7 +10,7 @@
     </VPageHeader>
 
     <!-- Batch Operation Toolbar -->
-    <div v-if="selectedNames.size > 0" class="mx-4 mt-2 flex items-center gap-3 bg-blue-50 border border-blue-200 rounded-lg px-4 py-2.5">
+    <div v-if="selectedNames.size > 0" class="m-4 mb-0 flex items-center gap-3 bg-blue-50 border border-blue-200 rounded-lg px-4 py-2.5">
       <span class="text-sm text-blue-700">已选择 {{ selectedNames.size }} 项</span>
       <button
         class="text-xs px-3 py-1 rounded bg-green-600 text-white hover:bg-green-700 transition-colors"
@@ -39,7 +39,7 @@
     </div>
 
     <!-- Filter Bar -->
-    <div class="mx-4 mt-2 flex items-center gap-3">
+    <div class="m-4 mb-0 flex items-center gap-3">
       <select
         v-model="filterStatus"
         class="rounded-md border border-gray-300 pl-3 pr-8 py-1.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"

@@ -31,7 +31,7 @@ AI回复者的显示名称，默认为「小回」。修改后新回复将使用
 填写邮箱后，AI回复者的头像将通过 Gravatar 服务自动生成：
 
 1. 插件根据邮箱生成 SHA-256 哈希
-2. 构造 Gravatar URL：`https://cn.cravatar.com/avatar/{hash}`
+2. 构造 Gravatar URL：`https://cn.cravatar.com/avatar/{hash}`（使用 [Cravatar](https://cn.cravatar.com) 镜像服务）
 3. 头像URL存储在评论的 `owner.annotations["avatar"]` 中
 
 ::: warning

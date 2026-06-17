@@ -112,7 +112,7 @@
       <div class="mt-4">
         <VCard :body-class="['!p-5']">
           <h3 class="text-sm font-medium text-gray-500 mb-3">快捷操作</h3>
-          <div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <div class="grid grid-cols-1 gap-2 sm:grid-cols-3">
             <button
               class="flex items-center gap-2 px-3 py-2.5 rounded-md bg-gray-50 hover:bg-gray-100 transition-colors text-sm text-gray-700"
               @click="$router.push({ name: 'CommentAiAutopilotLogs' })"
@@ -131,15 +131,6 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
               插件设置
-            </button>
-            <button
-              class="flex items-center gap-2 px-3 py-2.5 rounded-md bg-gray-50 hover:bg-gray-100 transition-colors text-sm text-gray-700"
-              @click="$router.push({ name: 'CommentAiAutopilotSettings' })"
-            >
-              <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-              AI角色
             </button>
             <button
               class="flex items-center gap-2 px-3 py-2.5 rounded-md bg-gray-50 hover:bg-gray-100 transition-colors text-sm text-gray-700"
