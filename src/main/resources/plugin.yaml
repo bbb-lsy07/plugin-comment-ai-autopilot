@@ -5,9 +5,17 @@ kind: Plugin
 metadata:
   # The name defines how the plugin is invoked, A unique name
   name: comment-ai-autopilot
+  annotations:
+    # Recommend installing AI Foundation from the app store after installing this plugin
+    # https://www.halo.run/store/apps/app-acslk9nu
+    "store.halo.run/recommended-apps": '["app-acslk9nu"]'
 spec:
   enabled: true
   requires: ">=2.25.0"
+  pluginDependencies:
+    # Optional dependency: plugin still loads without AI Foundation,
+    # but AI features require it to be installed and enabled.
+    ai-foundation?: "*"
   author:
     name: 暖心向阳335
     website: https://nxxy335.top
@@ -22,4 +30,4 @@ spec:
       url: "https://github.com/sunny-335/plugin-comment-ai-autopilot/blob/main/LICENSE"
   settingName: "comment-ai-autopilot-settings"
   configMapName: "comment-ai-autopilot-configmap"
-  version: "1.0.0-beta.1"
+  version: "1.0.0-beta.2-kx7m2p"

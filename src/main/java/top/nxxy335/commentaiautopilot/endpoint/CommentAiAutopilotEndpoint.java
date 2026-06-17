@@ -216,100 +216,25 @@ public class CommentAiAutopilotEndpoint implements CustomEndpoint {
     }
 
     private Mono<ServerResponse> getStats(ServerRequest request) {
-        String range = request.queryParam("range").orElse("7");
-
         return client.listAll(AiCommentReply.class, ListOptions.builder().build(), Sort.unsorted())
             .collectList()
-            .map(allReplies -> {
-                // 根据 range 计算截止时间
-                ZoneId zoneId = ZoneId.systemDefault();
-                LocalDate today = LocalDate.now(zoneId);
-                Instant cutoffInstant;
-                int trendDays;
-
-                if ("all".equals(range)) {
-                    cutoffInstant = null; // 不做时间过滤
-                    trendDays = 30; // "all" 时趋势也展示最近30天
-                } else {
-                    int days = Integer.parseInt(range);
-                    cutoffInstant = today.minusDays(days).atStartOfDay(zoneId).toInstant();
-                    trendDays = days;
-                }
-
-                // 根据 range 过滤记录
-                List<AiCommentReply> replies;
-                if (cutoffInstant != null) {
-                    replies = allReplies.stream()
-                        .filter(r -> {
-                            Instant ts = r.getMetadata().getCreationTimestamp();
-                            return ts != null && !ts.isBefore(cutoffInstant);
-                        })
-                        .toList();
-                } else {
-                    replies = allReplies;
-                }
-
+            .map(replies -> {
                 long total = replies.size();
                 long passCount = replies.stream()
                     .filter(r -> "PASS".equals(r.getSpec().getStatus())).count();
                 long failCount = replies.stream()
                     .filter(r -> "FAIL".equals(r.getSpec().getStatus())).count();
-                double avgScore = replies.stream()
-                    .filter(r -> r.getSpec().getScore() != null && r.getSpec().getScore() > 0)
-                    .mapToInt(r -> r.getSpec().getScore())
-                    .average().orElse(0.0);
 
                 long reviewingCount = replies.stream()
                     .filter(r -> "PASS".equals(r.getSpec().getStatus())
                         && !Boolean.TRUE.equals(r.getSpec().getPublished()))
                     .count();
 
-                Map<String, Long> sentimentDistribution = new HashMap<>();
-                sentimentDistribution.put("POSITIVE", 0L);
-                sentimentDistribution.put("NEUTRAL", 0L);
-                sentimentDistribution.put("NEGATIVE", 0L);
-                sentimentDistribution.put("UNKNOWN", 0L);
-                for (var r : replies) {
-                    String sentiment = r.getSpec().getSentiment();
-                    if (sentiment == null || sentiment.isBlank()) {
-                        sentimentDistribution.merge("UNKNOWN", 1L, Long::sum);
-                    } else {
-                        sentimentDistribution.merge(sentiment, 1L, Long::sum);
-                    }
-                }
-
-                // 计算 dailyTrend
-                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-                Map<LocalDate, Long> dailyMap = new HashMap<>();
-                for (int i = 0; i < trendDays; i++) {
-                    dailyMap.put(today.minusDays(i), 0L);
-                }
-                for (var r : replies) {
-                    Instant timestamp = r.getMetadata().getCreationTimestamp();
-                    if (timestamp != null) {
-                        try {
-                            LocalDate date = timestamp.atZone(zoneId).toLocalDate();
-                            if (dailyMap.containsKey(date)) {
-                                dailyMap.merge(date, 1L, Long::sum);
-                            }
-                        } catch (Exception ignored) {
-                        }
-                    }
-                }
-                List<DailyCount> dailyTrend = new ArrayList<>();
-                for (int i = 0; i < trendDays; i++) {
-                    LocalDate date = today.minusDays(i);
-                    dailyTrend.add(new DailyCount(date.format(formatter), dailyMap.get(date)));
-                }
-
-                return new StatsResponse(total, passCount, failCount, avgScore,
-                    reviewingCount, sentimentDistribution, dailyTrend);
+                return new StatsResponse(total, passCount, failCount, reviewingCount);
             })
             .onErrorResume(e -> {
                 log.warn("Failed to fetch stats: {}", e.getMessage());
-                return Mono.just(new StatsResponse(0, 0, 0, 0.0, 0L,
-                    Map.of("POSITIVE", 0L, "NEUTRAL", 0L, "NEGATIVE", 0L, "UNKNOWN", 0L),
-                    List.of()));
+                return Mono.just(new StatsResponse(0, 0, 0, 0));
             })
             .flatMap(stats -> ServerResponse.ok().bodyValue(stats));
     }
@@ -346,16 +271,11 @@ public class CommentAiAutopilotEndpoint implements CustomEndpoint {
             )));
     }
 
-    public record DailyCount(String date, long count) {}
-
     public record StatsResponse(
         long total,
         long passCount,
         long failCount,
-        double avgScore,
-        long reviewingCount,
-        Map<String, Long> sentimentDistribution,
-        List<DailyCount> dailyTrend
+        long reviewingCount
     ) {}
 
     public record PersonaResponse(

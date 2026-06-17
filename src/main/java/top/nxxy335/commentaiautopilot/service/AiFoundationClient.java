@@ -1,85 +1,58 @@
 package top.nxxy335.commentaiautopilot.service;
 
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
-import run.halo.app.core.extension.Plugin;
-import run.halo.app.extension.ReactiveExtensionClient;
+import run.halo.aifoundation.AiModelService;
+import run.halo.aifoundation.chat.GenerateTextRequest;
+import run.halo.aifoundation.chat.GenerateTextResult;
+import run.halo.aifoundation.schema.OutputSpec;
+import run.halo.app.plugin.extensionpoint.ExtensionGetter;
 
-import java.lang.reflect.Method;
-import java.util.Map;
+import java.util.List;
 
 /**
- * AI Foundation client that uses runtime class loading and reflection
- * to call the AI Foundation plugin's AiModelService.
+ * AI Foundation client that uses Halo's {@link ExtensionGetter} to obtain the
+ * {@link AiModelService} extension provided by the ai-foundation plugin.
  * <p>
- * This approach avoids classloader identity issues by loading AiModelService
- * from ai-foundation's own classloader, so that Spring's getBeansOfType()
- * can correctly match the implementation bean.
+ * This is the recommended way to integrate with AI Foundation, see
+ * <a href="https://github.com/halo-dev/plugin-ai-foundation/blob/main/dev/dev.md">dev guide</a>.
  * <p>
- * No @ConditionalOnClass or pluginDependencies needed.
- * Always registered as a bean; availability is checked at runtime.
+ * Requires the following declaration in plugin.yaml:
+ * <pre>
+ * spec:
+ *   pluginDependencies:
+ *     ai-foundation?: "*"
+ * </pre>
+ * The dependency is optional, so the plugin still loads when AI Foundation is
+ * not installed; availability is checked at runtime and all calls return empty
+ * in that case.
  */
 @Slf4j
 @Component
 public class AiFoundationClient {
 
-    private static final String AI_FOUNDATION_PLUGIN_NAME = "ai-foundation";
-    private static final String AI_MODEL_SERVICE_CLASS = "run.halo.aifoundation.AiModelService";
+    private final ExtensionGetter extensionGetter;
 
-    private final ReactiveExtensionClient client;
-    private final ApplicationContext applicationContext;
-
-    public AiFoundationClient(ReactiveExtensionClient client, ApplicationContext applicationContext) {
-        this.client = client;
-        this.applicationContext = applicationContext;
+    public AiFoundationClient(ExtensionGetter extensionGetter) {
+        this.extensionGetter = extensionGetter;
     }
 
     /**
      * Call AI Foundation to generate a chat response using the specified model.
+     * Uses {@link GenerateTextRequest} with {@code maxRetries=2} so that
+     * transient model errors are retried by the SDK.
      *
      * @param prompt    the prompt text
      * @param modelName the AiModel metadata.name, null or blank to use default model
      * @return the generated text, or empty if AI Foundation is unavailable
      */
     public Mono<String> chat(String prompt, String modelName) {
-        return isAiFoundationEnabled()
-            .flatMap(enabled -> {
-                if (!enabled) {
-                    log.warn("AI Foundation plugin is not installed or not enabled, skipping AI reply");
-                    return Mono.empty();
-                }
-                return doChat(prompt, modelName);
-            });
-    }
-
-    /**
-     * Check if AI Foundation is available: plugin installed, enabled, and AiModelService bean found.
-     */
-    public Mono<Boolean> isAvailable() {
-        return isAiFoundationEnabled()
-            .flatMap(enabled -> {
-                if (!enabled) return Mono.just(false);
-                return findAiModelService().hasElement();
-            });
-    }
-
-    private Mono<Boolean> isAiFoundationEnabled() {
-        return client.fetch(Plugin.class, AI_FOUNDATION_PLUGIN_NAME)
-            .map(plugin -> plugin.getSpec().getEnabled())
-            .defaultIfEmpty(false)
-            .onErrorResume(e -> {
-                log.debug("Failed to check AI Foundation plugin status: {}", e.getMessage());
-                return Mono.just(false);
-            });
-    }
-
-    private Mono<String> doChat(String prompt, String modelName) {
-        return findAiModelService()
-            .flatMap(service -> invokeLanguageModel(service, modelName)
-                .flatMap(model -> invokeGenerateText(model, prompt))
-            )
+        return aiModelService()
+            .flatMap(service -> service.languageModel(modelName != null ? modelName : "")
+                .flatMap(model -> model.generateText(
+                    GenerateTextRequest.builder().prompt(prompt).maxRetries(2).build()))
+                .map(GenerateTextResult::getText))
             .doOnError(e -> log.error("AI Foundation call failed: {}", e.getMessage()))
             .onErrorResume(e -> {
                 log.warn("AI Foundation not available: {}", e.getMessage());
@@ -88,132 +61,68 @@ public class AiFoundationClient {
     }
 
     /**
-     * Get PluginManager via the pluginWrapper bean registered in our plugin context.
-     * Halo's DefaultPluginApplicationContextFactory registers pluginWrapper as a singleton:
-     *   beanFactory.registerSingleton("pluginWrapper", pluginWrapper);
-     * Then PluginWrapper.getPluginManager() gives us the PluginManager instance.
+     * Call AI Foundation to classify text into one of the given choices using
+     * structured output ({@link OutputSpec#choice(List)}).
+     * <p>
+     * This is the recommended way to do classification per the dev guide,
+     * as it is more reliable than prompt parsing.
+     *
+     * @param systemPrompt system prompt describing the task
+     * @param userPrompt   the user input to classify
+     * @param choices      the allowed classification values
+     * @param modelName    the AiModel metadata.name, null or blank to use default model
+     * @return the selected choice string, or empty if AI Foundation is unavailable
      */
-    private Object findPluginManager() {
-        try {
-            Object pluginWrapper = applicationContext.getBean("pluginWrapper");
-            Method getPluginManagerMethod = pluginWrapper.getClass().getMethod("getPluginManager");
-            getPluginManagerMethod.setAccessible(true);
-            Object pm = getPluginManagerMethod.invoke(pluginWrapper);
-            if (pm != null) {
-                log.info("Found PluginManager via pluginWrapper bean: {}", pm.getClass().getName());
-            }
-            return pm;
-        } catch (NoSuchMethodException e) {
-            log.warn("pluginWrapper does not have getPluginManager() method: {}", e.getMessage());
-        } catch (Exception e) {
-            log.warn("Failed to get PluginManager via pluginWrapper: {}", e.getMessage());
-        }
-        log.warn("PluginManager not found");
-        return null;
+    public Mono<String> classify(String systemPrompt, String userPrompt,
+                                  List<String> choices, String modelName) {
+        return aiModelService()
+            .flatMap(service -> service.languageModel(modelName != null ? modelName : "")
+                .flatMap(model -> model.generateText(
+                    GenerateTextRequest.builder()
+                        .system(systemPrompt)
+                        .prompt(userPrompt)
+                        .output(OutputSpec.choice(choices))
+                        .maxRetries(2)
+                        .build()))
+                .map(result -> {
+                    Object output = result.getOutput();
+                    return output != null ? String.valueOf(output).trim() : "";
+                }))
+            .doOnError(e -> log.error("AI Foundation classify failed: {}", e.getMessage()))
+            .onErrorResume(e -> {
+                log.warn("AI Foundation not available: {}", e.getMessage());
+                return Mono.empty();
+            });
     }
 
     /**
-     * Find the AiModelService bean from ai-foundation's PluginApplicationContext.
-     * Uses PluginManager.getPlugin() to get the plugin wrapper, then reflection
-     * to get the plugin's ApplicationContext.
+     * Check if AI Foundation is available: plugin installed and an
+     * AiModelService extension is enabled.
      */
-    private Mono<Object> findAiModelService() {
-        return Mono.fromCallable(() -> {
-            Object pm = findPluginManager();
-            if (pm == null) return null;
-
-            // Call pm.getPlugin("ai-foundation") via reflection
-            Method getPluginMethod = pm.getClass().getMethod("getPlugin", String.class);
-            getPluginMethod.setAccessible(true);
-            Object pluginWrapper = getPluginMethod.invoke(pm, AI_FOUNDATION_PLUGIN_NAME);
-            if (pluginWrapper == null) {
-                log.debug("ai-foundation plugin not found in PluginManager");
-                return null;
-            }
-
-            // Call pluginWrapper.getPlugin() to get the plugin instance
-            Method getPluginInstanceMethod = pluginWrapper.getClass().getMethod("getPlugin");
-            getPluginInstanceMethod.setAccessible(true);
-            Object pluginInstance = getPluginInstanceMethod.invoke(pluginWrapper);
-            if (pluginInstance == null) {
-                log.debug("ai-foundation plugin instance is null");
-                return null;
-            }
-
-            // Get the plugin's ApplicationContext via reflection on SpringPlugin
-            // DefaultSpringPlugin is package-private, so we need setAccessible
-            Method getCtxMethod = pluginInstance.getClass().getMethod("getApplicationContext");
-            getCtxMethod.setAccessible(true);
-            ApplicationContext pluginAppContext = (ApplicationContext) getCtxMethod.invoke(pluginInstance);
-
-            // Get the plugin classloader
-            Method getClassLoaderMethod = pluginWrapper.getClass().getMethod("getPluginClassLoader");
-            getClassLoaderMethod.setAccessible(true);
-            ClassLoader pluginClassLoader = (ClassLoader) getClassLoaderMethod.invoke(pluginWrapper);
-
-            // Load AiModelService from ai-foundation's classloader
-            Class<?> aiModelServiceClass = pluginClassLoader.loadClass(AI_MODEL_SERVICE_CLASS);
-
-            // Find the AiModelService bean in ai-foundation's ApplicationContext
-            Map<String, ?> beans = pluginAppContext.getBeansOfType(aiModelServiceClass);
-            if (beans.isEmpty()) {
-                log.debug("AiModelService bean not found in ai-foundation's ApplicationContext");
-                return null;
-            }
-
-            log.info("Found AiModelService bean in ai-foundation's ApplicationContext");
-            Object result = beans.values().iterator().next();
-            return (Object) result;
-        }).doOnError(e -> log.error("Failed to find AiModelService: {}", e.getMessage()));
+    public Mono<Boolean> isAvailable() {
+        return aiModelService().hasElement()
+            .onErrorResume(e -> {
+                log.debug("AI Foundation not available: {}", e.getMessage());
+                return Mono.just(false);
+            });
     }
 
     /**
-     * Call service.languageModel(modelName) or service.languageModel() via reflection.
-     * Returns Mono&lt;LanguageModel&gt; from ai-foundation's classloader.
+     * Obtain the enabled AiModelService extension via ExtensionGetter.
+     * <p>
+     * Wrapped in {@link Mono#defer} with a {@link NoClassDefFoundError} guard so
+     * that the plugin still works when the optional ai-foundation dependency is
+     * not installed (the AiModelService API class is then absent from the
+     * classloader).
      */
-    private Mono<Object> invokeLanguageModel(Object service, String modelName) {
-        return Mono.fromCallable(() -> {
-            Method method;
-            if (modelName != null && !modelName.isBlank()) {
-                method = service.getClass().getMethod("languageModel", String.class);
-                method.setAccessible(true);
-                return method.invoke(service, modelName);
-            } else {
-                method = service.getClass().getMethod("languageModel");
-                method.setAccessible(true);
-                return method.invoke(service);
+    private Mono<AiModelService> aiModelService() {
+        return Mono.defer(() -> {
+            try {
+                return extensionGetter.getEnabledExtension(AiModelService.class);
+            } catch (NoClassDefFoundError e) {
+                log.debug("AI Foundation API not on classpath: {}", e.getMessage());
+                return Mono.empty();
             }
-        }).flatMap(result -> {
-            if (result instanceof Mono<?> mono) return mono;
-            return Mono.justOrEmpty(result);
         });
-    }
-
-    /**
-     * Call model.generateText(prompt) via reflection, then extract text from result.
-     * Returns the generated text string.
-     */
-    private Mono<String> invokeGenerateText(Object model, String prompt) {
-        return Mono.fromCallable(() -> {
-            Method method = model.getClass().getMethod("generateText", String.class);
-            method.setAccessible(true);
-            return method.invoke(model, prompt);
-        }).flatMap(result -> {
-            if (result instanceof Mono<?> mono) {
-                return mono.map(this::extractText);
-            }
-            return Mono.justOrEmpty(extractText(result));
-        });
-    }
-
-    private String extractText(Object result) {
-        if (result == null) return null;
-        try {
-            Method getText = result.getClass().getMethod("getText");
-            getText.setAccessible(true);
-            return (String) getText.invoke(result);
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to call getText() on GenerateTextResult: " + e.getMessage(), e);
-        }
     }
 }

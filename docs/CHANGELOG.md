@@ -1,5 +1,30 @@
 # 更新日志
 
+## v1.0.0-beta.2
+
+> 2026-06-17
+
+### 改进
+
+- **改用 ExtensionGetter 集成 AI Foundation**：通过 Halo 官方推荐的 `ExtensionGetter.getEnabledExtension(AiModelService.class)` 获取 AI 服务，替换原先的跨 ClassLoader 反射调用方式（[Issue #1](https://github.com/sunny-335/plugin-comment-ai-autopilot/issues/1)）
+- **声明插件依赖**：在 `plugin.yaml` 中声明可选插件依赖 `ai-foundation?: "*"`，建立正确的插件依赖关系，插件在未安装 AI Foundation 时仍可正常加载
+- **应用市场推荐**：新增 `store.halo.run/recommended-apps` 注解，安装本插件后可在应用市场推荐安装 AI Foundation 插件
+- **使用结构化输出**：情感分析和内容审核改用 AI Foundation 的 `OutputSpec.choice` 结构化输出，替换原先的字符串匹配解析，分类更可靠
+- **使用 GenerateTextRequest**：AI 调用改用 `GenerateTextRequest` 并设置 `maxRetries=2`，由 SDK 自动重试瞬时错误
+- **简化 languageModel 调用**：直接传递 modelName 参数，由 SDK 处理空值（使用默认模型），无需手动判断
+- **多轮对话上下文**：AI 对话续接时自动获取之前的回复历史并注入到 Prompt 中，AI 能更好地理解对话上下文
+- **优化 AI 自审核评分机制**：审核改为两阶段评估（安全检查 + 质量评分 1-5 分），评分映射到 0-100 分（0/30/50/70/85/100），替代原先的二值评分（0/100），评分更有区分度
+- **精简仪表盘**：移除情感分布、近7日回复趋势、平均审核评分三个卡片，保留核心的回复概览和快捷操作，界面更简洁
+- **优化设置页面布局**：页面头部按钮使用 VSpace 统一排版并添加图标；侧边栏保存卡片高亮显示，新增"未保存"状态指示器；保存/重置按钮添加图标
+- **优化日志页面评分显示**：评分增加等级标签（优秀/良好/一般/较差），更直观
+
+### Bug 修复
+
+- **修复 RateLimitService 线程泄漏**：清理线程未在插件停止时关闭，实现 `DisposableBean` 正确释放资源
+- **修复 ReviewService 提示词不匹配**：审核提示词要求"重新生成"但代码未使用重新生成的内容，移除误导性指令
+
+---
+
 ## v1.0.0-beta.1
 
 > 2026-06-16

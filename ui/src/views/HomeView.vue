@@ -108,152 +108,11 @@
         </VCard>
       </div>
 
-      <!-- Middle: Sentiment + Trend -->
-      <div class="grid grid-cols-1 gap-4 mt-4 lg:grid-cols-2">
-        <!-- Sentiment Distribution -->
-        <VCard :body-class="['!p-5']">
-          <h3 class="text-sm font-medium text-gray-500 mb-4">情感分布</h3>
-          <div class="space-y-3">
-            <div class="flex items-center gap-3">
-              <div class="w-2 h-2 rounded-full bg-green-500 shrink-0"></div>
-              <div class="flex-1 min-w-0">
-                <div class="flex items-center justify-between text-sm">
-                  <span class="text-gray-700">正面</span>
-                  <span class="font-medium text-green-600">{{ stats?.sentimentDistribution?.POSITIVE || 0 }}</span>
-                </div>
-                <div class="mt-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                  <div
-                    class="h-full bg-green-400 rounded-full transition-all duration-500"
-                    :style="{ width: getSentimentPercent('POSITIVE') + '%' }"
-                  ></div>
-                </div>
-              </div>
-            </div>
-            <div class="flex items-center gap-3">
-              <div class="w-2 h-2 rounded-full bg-gray-400 shrink-0"></div>
-              <div class="flex-1 min-w-0">
-                <div class="flex items-center justify-between text-sm">
-                  <span class="text-gray-700">中性</span>
-                  <span class="font-medium text-gray-600">{{ stats?.sentimentDistribution?.NEUTRAL || 0 }}</span>
-                </div>
-                <div class="mt-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                  <div
-                    class="h-full bg-gray-400 rounded-full transition-all duration-500"
-                    :style="{ width: getSentimentPercent('NEUTRAL') + '%' }"
-                  ></div>
-                </div>
-              </div>
-            </div>
-            <div class="flex items-center gap-3">
-              <div class="w-2 h-2 rounded-full bg-red-500 shrink-0"></div>
-              <div class="flex-1 min-w-0">
-                <div class="flex items-center justify-between text-sm">
-                  <span class="text-gray-700">负面</span>
-                  <span class="font-medium text-red-500">{{ stats?.sentimentDistribution?.NEGATIVE || 0 }}</span>
-                </div>
-                <div class="mt-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                  <div
-                    class="h-full bg-red-400 rounded-full transition-all duration-500"
-                    :style="{ width: getSentimentPercent('NEGATIVE') + '%' }"
-                  ></div>
-                </div>
-              </div>
-            </div>
-            <div class="flex items-center gap-3">
-              <div class="w-2 h-2 rounded-full bg-gray-300 shrink-0"></div>
-              <div class="flex-1 min-w-0">
-                <div class="flex items-center justify-between text-sm">
-                  <span class="text-gray-700">未知</span>
-                  <span class="font-medium text-gray-400">{{ stats?.sentimentDistribution?.UNKNOWN || 0 }}</span>
-                </div>
-                <div class="mt-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                  <div
-                    class="h-full bg-gray-300 rounded-full transition-all duration-500"
-                    :style="{ width: getSentimentPercent('UNKNOWN') + '%' }"
-                  ></div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </VCard>
-
-        <!-- Daily Trend -->
-        <VCard :body-class="['!p-5']">
-          <div class="flex items-center justify-between mb-4">
-            <h3 class="text-sm font-medium text-gray-500">近7日回复趋势</h3>
-            <div class="inline-flex rounded-md border border-gray-200 overflow-hidden">
-              <button
-                class="px-2.5 py-1 text-xs transition-colors"
-                :class="range === '7' ? 'bg-blue-500 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'"
-                @click="range = '7'"
-              >
-                7天
-              </button>
-              <button
-                class="px-2.5 py-1 text-xs border-l border-gray-200 transition-colors"
-                :class="range === '30' ? 'bg-blue-500 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'"
-                @click="range = '30'"
-              >
-                30天
-              </button>
-              <button
-                class="px-2.5 py-1 text-xs border-l border-gray-200 transition-colors"
-                :class="range === 'all' ? 'bg-blue-500 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'"
-                @click="range = 'all'"
-              >
-                全部
-              </button>
-            </div>
-          </div>
-          <div v-if="stats?.dailyTrend?.length" class="flex items-end gap-3" style="height: 160px">
-            <div
-              v-for="day in stats.dailyTrend"
-              :key="day.date"
-              class="flex-1 flex flex-col items-center justify-end h-full"
-            >
-              <div class="text-xs text-gray-500 mb-1 font-medium">{{ day.count }}</div>
-              <div
-                class="w-full rounded-t-md transition-all duration-500"
-                :class="day.count > 0 ? 'bg-gradient-to-t from-blue-500 to-blue-400' : 'bg-gray-100'"
-                :style="{ height: getTrendBarHeight(day.count) + 'px' }"
-              ></div>
-              <div class="text-[10px] text-gray-400 mt-2 whitespace-nowrap">{{ formatTrendDate(day.date) }}</div>
-            </div>
-          </div>
-          <div v-else class="flex items-center justify-center text-sm text-gray-400" style="height: 160px">
-            暂无数据
-          </div>
-        </VCard>
-      </div>
-
-      <!-- Bottom: Score + Quick Actions -->
-      <div class="grid grid-cols-1 gap-4 mt-4 sm:grid-cols-2">
-        <!-- Avg Score -->
-        <VCard :body-class="['!p-5']">
-          <h3 class="text-sm font-medium text-gray-500 mb-3">平均审核评分</h3>
-          <div class="flex items-center gap-4">
-            <div class="text-4xl font-bold" :class="scoreColor">{{ stats?.avgScore?.toFixed(1) || '0.0' }}</div>
-            <div class="flex-1">
-              <div class="h-3 bg-gray-100 rounded-full overflow-hidden">
-                <div
-                  class="h-full rounded-full transition-all duration-500"
-                  :class="scoreBarColor"
-                  :style="{ width: (stats?.avgScore || 0) * 10 + '%' }"
-                ></div>
-              </div>
-              <div class="flex justify-between text-[10px] text-gray-300 mt-1">
-                <span>0</span>
-                <span>5</span>
-                <span>10</span>
-              </div>
-            </div>
-          </div>
-        </VCard>
-
-        <!-- Quick Actions -->
+      <!-- Quick Actions -->
+      <div class="mt-4">
         <VCard :body-class="['!p-5']">
           <h3 class="text-sm font-medium text-gray-500 mb-3">快捷操作</h3>
-          <div class="grid grid-cols-2 gap-2">
+          <div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
             <button
               class="flex items-center gap-2 px-3 py-2.5 rounded-md bg-gray-50 hover:bg-gray-100 transition-colors text-sm text-gray-700"
               @click="$router.push({ name: 'CommentAiAutopilotLogs' })"
@@ -299,24 +158,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from "vue"
+import { ref, computed, onMounted } from "vue"
 import { axiosInstance } from "@halo-dev/api-client"
 import { VPageHeader, VButton, VCard, Toast } from "@halo-dev/components"
 import { IconPlug } from "@halo-dev/components"
-
-interface DailyCount {
-  date: string
-  count: number
-}
 
 interface StatsResponse {
   total: number
   passCount: number
   failCount: number
   reviewingCount: number
-  avgScore: number
-  sentimentDistribution: Record<string, number>
-  dailyTrend: DailyCount[]
 }
 
 interface PersonaResponse {
@@ -331,7 +182,6 @@ interface HealthResponse {
 
 const stats = ref<StatsResponse | null>(null)
 const persona = ref<PersonaResponse | null>(null)
-const range = ref("7")
 const health = ref<HealthResponse | null>(null)
 const healthVisible = ref(true)
 
@@ -340,24 +190,10 @@ const passRate = computed(() => {
   return Math.round((stats.value.passCount / stats.value.total) * 100)
 })
 
-const scoreColor = computed(() => {
-  const score = stats.value?.avgScore || 0
-  if (score >= 7) return "text-green-600"
-  if (score >= 4) return "text-amber-500"
-  return "text-red-500"
-})
-
-const scoreBarColor = computed(() => {
-  const score = stats.value?.avgScore || 0
-  if (score >= 7) return "bg-gradient-to-r from-green-400 to-green-500"
-  if (score >= 4) return "bg-gradient-to-r from-amber-400 to-amber-500"
-  return "bg-gradient-to-r from-red-400 to-red-500"
-})
-
 const fetchStats = async () => {
   try {
     const { data } = await axiosInstance.get(
-      `/apis/console.api.comment-ai-autopilot.nxxy335.top/v1alpha1/stats?range=${range.value}`,
+      `/apis/console.api.comment-ai-autopilot.nxxy335.top/v1alpha1/stats?range=7`,
     )
     stats.value = data
   } catch (e) {
@@ -420,31 +256,6 @@ const refreshData = () => {
 const openSettings = () => {
   window.location.href = "/console/comment-ai-autopilot/settings"
 }
-
-const getSentimentPercent = (sentiment: string): number => {
-  const dist = stats.value?.sentimentDistribution
-  if (!dist) return 0
-  const total = Object.values(dist).reduce((a, b) => a + b, 0)
-  if (total === 0) return 0
-  return Math.round(((dist[sentiment] || 0) / total) * 100)
-}
-
-const getTrendBarHeight = (count: number): number => {
-  const trend = stats.value?.dailyTrend
-  if (!trend || trend.length === 0) return 0
-  const max = Math.max(...trend.map(d => d.count), 1)
-  return Math.max((count / max) * 100, count > 0 ? 8 : 4)
-}
-
-const formatTrendDate = (dateStr: string): string => {
-  if (!dateStr) return ''
-  const parts = dateStr.split('-')
-  return parts.length >= 3 ? `${parts[1]}/${parts[2]}` : dateStr
-}
-
-watch(range, () => {
-  fetchStats()
-})
 
 onMounted(() => {
   fetchStats()

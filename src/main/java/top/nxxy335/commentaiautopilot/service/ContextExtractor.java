@@ -42,6 +42,55 @@ public class ContextExtractor {
             });
     }
 
+    /**
+     * Fetch previous replies in the comment thread to provide conversation history.
+     * Only includes replies created before the triggering reply.
+     */
+    private Mono<String> fetchConversationHistory(String commentName, String triggerReplyName) {
+        if (triggerReplyName == null || triggerReplyName.isBlank()) {
+            return Mono.just("");
+        }
+        return client.fetch(Reply.class, triggerReplyName)
+            .flatMap(triggerReply -> {
+                var triggerTime = triggerReply.getMetadata().getCreationTimestamp();
+                return client.list(Reply.class,
+                        reply -> {
+                            if (!commentName.equals(reply.getSpec().getCommentName())) {
+                                return false;
+                            }
+                            if (triggerReplyName.equals(reply.getMetadata().getName())) {
+                                return false;
+                            }
+                            // Only include replies created before the trigger reply
+                            var replyTime = reply.getMetadata().getCreationTimestamp();
+                            return replyTime != null && triggerTime != null
+                                && !replyTime.isAfter(triggerTime);
+                        },
+                        null)
+                    .collectList()
+                    .map(replies -> {
+                        if (replies.isEmpty()) return "";
+                        // Sort by creation time
+                        replies.sort(java.util.Comparator.comparing(
+                            r -> r.getMetadata().getCreationTimestamp()));
+                        var sb = new StringBuilder();
+                        for (var r : replies) {
+                            var owner = r.getSpec().getOwner();
+                            String name = (owner != null && owner.getDisplayName() != null)
+                                ? owner.getDisplayName() : "匿名用户";
+                            boolean isAi = owner != null && owner.getAnnotations() != null
+                                && "true".equals(owner.getAnnotations().get("comment-ai-autopilot.nxxy335.top/is-ai"));
+                            String role = isAi ? "AI" : "用户";
+                            String content = extractReplyContent(r);
+                            sb.append(role).append("(").append(name).append("): ")
+                              .append(content).append("\n");
+                        }
+                        return sb.toString();
+                    });
+            })
+            .defaultIfEmpty("");
+    }
+
     private Mono<CommentContext> buildContext(Comment comment, boolean isAiConversation) {
         var commentContent = extractCommentContent(comment);
         var commentOwner = extractCommentOwner(comment);
@@ -63,7 +112,8 @@ public class ContextExtractor {
                             null,
                             isAiConversation,
                             formatPostDate(post),
-                            commentCount
+                            commentCount,
+                            ""
                         ))
                     )
                 )
@@ -78,7 +128,8 @@ public class ContextExtractor {
                     null,
                     isAiConversation,
                     "",
-                    0
+                    0,
+                    ""
                 ));
         }
 
@@ -93,7 +144,8 @@ public class ContextExtractor {
             null,
             isAiConversation,
             "",
-            0
+            0,
+            ""
         ));
     }
 
@@ -101,55 +153,68 @@ public class ContextExtractor {
         var replyContent = extractReplyContent(reply);
         var replyOwner = extractReplyOwner(reply);
         var subjectRef = comment.getSpec().getSubjectRef();
+        var commentName = comment.getMetadata().getName();
+        var replyName = reply.getMetadata().getName();
+
+        // Fetch conversation history for AI conversations
+        Mono<String> historyMono = isAiConversation
+            ? fetchConversationHistory(commentName, replyName)
+            : Mono.just("");
 
         if (subjectRef != null && "Post".equals(subjectRef.getKind())) {
             String postName = subjectRef.getName();
             return client.fetch(Post.class, postName)
                 .flatMap(post -> getPostContent(postName)
-                    .flatMap(content -> getCommentCount(comment.getMetadata().getName())
-                        .map(commentCount -> new CommentContext(
-                            comment.getMetadata().getName(),
-                            postName,
-                            post.getSpec().getSlug(),
-                            replyContent,
-                            replyOwner,
-                            post.getSpec().getTitle(),
-                            content,
-                            reply.getMetadata().getName(),
-                            isAiConversation,
-                            formatPostDate(post),
-                            commentCount
-                        ))
+                    .flatMap(content -> getCommentCount(commentName)
+                        .flatMap(commentCount -> historyMono
+                            .map(history -> new CommentContext(
+                                commentName,
+                                postName,
+                                post.getSpec().getSlug(),
+                                replyContent,
+                                replyOwner,
+                                post.getSpec().getTitle(),
+                                content,
+                                replyName,
+                                isAiConversation,
+                                formatPostDate(post),
+                                commentCount,
+                                history
+                            ))
+                        )
                     )
                 )
                 .defaultIfEmpty(new CommentContext(
-                    comment.getMetadata().getName(),
+                    commentName,
                     postName,
                     "",
                     replyContent,
                     replyOwner,
                     "",
                     "",
-                    reply.getMetadata().getName(),
+                    replyName,
                     isAiConversation,
                     "",
-                    0
+                    0,
+                    ""
                 ));
         }
 
-        return Mono.just(new CommentContext(
-            comment.getMetadata().getName(),
-            "",
-            "",
-            replyContent,
-            replyOwner,
-            "",
-            "",
-            reply.getMetadata().getName(),
-            isAiConversation,
-            "",
-            0
-        ));
+        return historyMono
+            .map(history -> new CommentContext(
+                commentName,
+                "",
+                "",
+                replyContent,
+                replyOwner,
+                "",
+                "",
+                replyName,
+                isAiConversation,
+                "",
+                0,
+                history
+            ));
     }
 
     private String extractCommentContent(Comment comment) {
@@ -245,6 +310,7 @@ public class ContextExtractor {
         String replyTo,
         boolean isAiConversation,
         String postDate,
-        int commentCount
+        int commentCount,
+        String conversationHistory
     ) {}
 }

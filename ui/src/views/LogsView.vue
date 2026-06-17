@@ -152,7 +152,8 @@
           <div class="px-4 py-2.5 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
             <div class="flex items-center gap-4 text-xs text-gray-400">
               <span>
-                评分 <span :class="getScoreClass(reply.spec.score)" class="font-medium text-gray-600">{{ reply.spec.score }}</span>
+                评分 <span :class="getScoreClass(reply.spec.score)" class="font-medium">{{ reply.spec.score }}</span>
+                <span class="text-gray-300 ml-0.5">{{ getScoreLabel(reply.spec.score) }}</span>
               </span>
               <span v-if="reply.spec.postSlug" class="flex items-center gap-1">
                 文章
@@ -506,6 +507,14 @@ const getScoreClass = (score: number) => {
   if (score >= 85) return "text-green-600"
   if (score >= 60) return "text-yellow-600"
   return "text-red-600"
+}
+
+const getScoreLabel = (score: number) => {
+  if (score >= 85) return "优秀"
+  if (score >= 70) return "良好"
+  if (score >= 50) return "一般"
+  if (score > 0) return "较差"
+  return ""
 }
 
 const getStatusClass = (status: string) => {

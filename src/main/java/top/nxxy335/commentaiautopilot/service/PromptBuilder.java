@@ -75,6 +75,7 @@ public class PromptBuilder {
             文章（仅供理解上下文，不要复述）：
             {{article}}
 
+            {{conversation_history}}
             评论：
             {{comment}}
             """;
@@ -103,6 +104,7 @@ public class PromptBuilder {
                     .replace("{{post_date}}", context.postDate() != null ? context.postDate() : "")
                     .replace("{{comment_count}}", String.valueOf(context.commentCount()))
                     .replace("{{article}}", context.postTitle() + "\n" + context.postContent())
+                    .replace("{{conversation_history}}", formatConversationHistory(context))
                     .replace("{{comment}}", context.commentOwner() + ": " + context.commentContent());
 
                 return prompt;
@@ -133,6 +135,7 @@ public class PromptBuilder {
                     .replace("{{post_date}}", context.postDate() != null ? context.postDate() : "")
                     .replace("{{comment_count}}", String.valueOf(context.commentCount()))
                     .replace("{{article}}", context.postTitle() + "\n" + context.postContent())
+                    .replace("{{conversation_history}}", formatConversationHistory(context))
                     .replace("{{comment}}", context.commentOwner() + ": " + context.commentContent());
 
                 if (sentiment == null || "NEUTRAL".equals(sentiment)) {
@@ -145,6 +148,18 @@ public class PromptBuilder {
                 };
                 return prompt + sentimentHint;
             });
+    }
+
+    /**
+     * Format conversation history for inclusion in the prompt.
+     * Returns empty string if no history is available.
+     */
+    private String formatConversationHistory(ContextExtractor.CommentContext context) {
+        String history = context.conversationHistory();
+        if (history == null || history.isBlank()) {
+            return "";
+        }
+        return "对话历史（供理解上下文）：\n" + history + "\n";
     }
 
     private Mono<String> getPromptTemplate() {

@@ -1,6 +1,7 @@
 package top.nxxy335.commentaiautopilot.service;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.DisposableBean;
 import org.springframework.stereotype.Component;
 
 import java.util.concurrent.ConcurrentHashMap;
@@ -8,15 +9,18 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 @Slf4j
 @Component
-public class RateLimitService {
+public class RateLimitService implements DisposableBean {
     private final ConcurrentHashMap<Long, AtomicInteger> windowMap = new ConcurrentHashMap<>();
+    private final Thread cleanupThread;
+    private volatile boolean running = true;
 
     public RateLimitService() {
         // 每5分钟清理过期窗口，防止内存泄漏
-        Thread cleanupThread = new Thread(() -> {
-            while (!Thread.currentThread().isInterrupted()) {
+        cleanupThread = new Thread(() -> {
+            while (running && !Thread.currentThread().isInterrupted()) {
                 try {
                     Thread.sleep(5 * 60 * 1000);
+                    if (!running) break;
                     cleanup();
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
@@ -54,5 +58,14 @@ public class RateLimitService {
         if (removed > 0) {
             log.debug("[RateLimit] Cleaned up {} expired windows", removed);
         }
+    }
+
+    @Override
+    public void destroy() {
+        running = false;
+        if (cleanupThread != null) {
+            cleanupThread.interrupt();
+        }
+        log.info("[RateLimit] Cleanup thread stopped");
     }
 }

@@ -5,291 +5,324 @@
         <IconPlug class="mr-2 self-center" />
       </template>
       <template #actions>
-        <VButton type="secondary" size="sm" @click="exportConfig">导出配置</VButton>
-        <label class="inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-md border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 cursor-pointer transition-colors">
-          导入配置
-          <input type="file" accept=".json" class="hidden" @change="handleImportFile" />
-        </label>
-        <VButton @click="$router.push({ name: 'CommentAiAutopilot' })">返回概览</VButton>
+        <VSpace spacing="sm">
+          <VButton size="sm" @click="exportConfig">
+            <template #icon>
+              <svg style="width:14px;height:14px" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+            </template>
+            导出
+          </VButton>
+          <label class="inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-md border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 cursor-pointer transition-colors">
+            <svg style="width:14px;height:14px;margin-right:4px" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+            导入
+            <input type="file" accept=".json" class="hidden" @change="handleImportFile" />
+          </label>
+          <VButton size="sm" @click="$router.push({ name: 'CommentAiAutopilot' })">返回概览</VButton>
+        </VSpace>
       </template>
     </VPageHeader>
 
     <div class="m-4">
       <VLoading v-if="loading" />
 
-      <div v-if="!loading" class="settings-container">
-        <!-- Left: Settings Sections -->
-        <div class="settings-sections space-y-5">
-          <!-- ========== 基本设置 ========== -->
-          <section class="settings-section">
-            <div class="section-header section-header--blue">
-              <div class="section-header__icon">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-              </div>
-              <div class="section-header__text">
-                <h3>基本设置</h3>
-                <p>控制AI回复的基本行为</p>
-              </div>
-            </div>
-            <div class="section-body">
-              <!-- Switch Row: 自动回复 -->
-              <div class="form-row">
-                <div class="form-row__label">
-                  <span class="form-label">自动回复</span>
-                  <span class="form-hint">启用后，AI将自动回复新评论</span>
-                </div>
-                <label class="toggle">
-                  <input type="checkbox" v-model="settings.basic.autoReply" />
-                  <span class="toggle__track"><span class="toggle__thumb"></span></span>
-                </label>
-              </div>
-              <!-- Switch Row: 自动发布 -->
-              <div class="form-row">
-                <div class="form-row__label">
-                  <span class="form-label">自动发布</span>
-                  <span class="form-hint">关闭后AI回复将存为草稿，需手动审核发布</span>
-                </div>
-                <label class="toggle">
-                  <input type="checkbox" v-model="settings.basic.autoPublish" />
-                  <span class="toggle__track"><span class="toggle__thumb"></span></span>
-                </label>
-              </div>
-              <!-- Slider: 最大对话轮次 -->
-              <div class="form-field">
-                <div class="form-field__header">
-                  <span class="form-label">最大对话轮次</span>
-                  <span class="form-badge">{{ settings.basic.maxConversationRounds }}</span>
-                </div>
-                <span class="form-hint">同一评论线程中AI最多自动回复的轮次</span>
-                <div class="slider">
-                  <input type="range" v-model.number="settings.basic.maxConversationRounds" min="1" max="100" class="slider__input" />
-                  <div class="slider__marks">
-                    <span>1</span><span>50</span><span>100</span>
-                  </div>
-                </div>
-              </div>
-              <!-- Input: 速率限制 -->
-              <div class="form-field">
-                <label class="form-label">速率限制</label>
-                <span class="form-hint">每分钟最大AI回复数量</span>
-                <input type="number" v-model.number="settings.basic.rateLimitPerMinute" min="1" max="100" class="form-input" placeholder="10" />
-              </div>
-              <!-- Slider: 最大重试次数 -->
-              <div class="form-field">
-                <div class="form-field__header">
-                  <span class="form-label">最大重试次数</span>
-                  <span class="form-badge">{{ settings.basic.maxRetryCount }}</span>
-                </div>
-                <span class="form-hint">AI生成失败时的最大重试次数，采用指数退避策略</span>
-                <div class="slider">
-                  <input type="range" v-model.number="settings.basic.maxRetryCount" min="1" max="10" class="slider__input" />
-                  <div class="slider__marks">
-                    <span>1</span><span>5</span><span>10</span>
-                  </div>
-                </div>
-              </div>
-              <!-- Textarea: 评论者黑名单 -->
-              <div class="form-field">
-                <div class="form-field__header">
-                  <span class="form-label">评论者黑名单</span>
-                  <button class="btn-link" @click="openCommenterDialog">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
-                    添加评论者
-                  </button>
-                </div>
-                <span class="form-hint">支持名称、邮箱和正则表达式。正则以 regex: 开头，如 regex:^spam.*</span>
-                <textarea v-model="settings.basic.blockedCommenters" rows="2" class="form-textarea" placeholder="例如：张三, spam@example.com, 李四"></textarea>
-              </div>
-            </div>
-          </section>
+      <div v-if="!loading">
+        <!-- Tab Navigation (full width, above the grid) -->
+        <div class="settings-tabs">
+          <button
+            v-for="tab in tabItems"
+            :key="tab.value"
+            class="settings-tab"
+            :class="{ 'settings-tab--active': activeTab === tab.value }"
+            @click="activeTab = tab.value"
+          >
+            {{ tab.label }}
+          </button>
+        </div>
 
-          <!-- ========== AI角色设置 ========== -->
-          <section class="settings-section">
-            <div class="section-header section-header--purple">
-              <div class="section-header__icon">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-              </div>
-              <div class="section-header__text">
-                <h3>AI角色设置</h3>
-                <p>定义AI虚拟评论者的身份和风格</p>
-              </div>
-            </div>
-            <div class="section-body">
-              <!-- Persona List -->
-              <VLoading v-if="personasLoading" />
-              <div v-else-if="personas.length === 0" class="persona-empty">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                <span>请添加至少一个AI角色</span>
-              </div>
-              <div v-else class="persona-list">
-                <div v-for="p in personas" :key="p.metadata.name" class="persona-card">
-                  <div class="persona-card__avatar">
-                    <img v-if="getPersonaAvatar(p)" :src="getPersonaAvatar(p)" alt="头像" />
-                    <span v-else class="persona-card__avatar-fallback">{{ (p.spec.displayName || '?').charAt(0) }}</span>
-                  </div>
-                  <div class="persona-card__info">
-                    <div class="persona-card__name">
-                      {{ p.spec.displayName || '未命名' }}
-                      <span v-if="p.spec.isDefault" class="persona-card__badge">默认</span>
-                    </div>
-                    <div class="persona-card__prompt">{{ p.spec.prompt || '暂无提示词' }}</div>
-                  </div>
-                  <div class="persona-card__actions">
-                    <button class="btn-icon" title="编辑" @click="openPersonaDialog(p)">
-                      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                    </button>
-                    <button v-if="!p.spec?.isDefault" class="btn-icon btn-icon--danger" title="删除" @click="deletePersona(p)">
-                      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                    </button>
-                    <button v-if="!p.spec?.isDefault" class="btn-icon" title="设为默认" @click="setDefaultPersona(p)">
-                      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/></svg>
-                    </button>
-                  </div>
+        <!-- Settings Grid: sections (left) + sidebar (right) -->
+        <div class="settings-container">
+          <!-- Left: Settings Sections -->
+          <div class="settings-sections space-y-5">
+            <!-- ========== 基本设置 ========== -->
+            <section v-if="activeTab === 'basic'" class="settings-section">
+              <div class="section-header section-header--blue">
+                <div class="section-header__icon">
+                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                </div>
+                <div class="section-header__text">
+                  <h3>基本设置</h3>
+                  <p>控制AI回复的基本行为</p>
                 </div>
               </div>
-              <VButton type="secondary" @click="openPersonaDialog(null)">
-                <svg style="width:16px;height:16px;margin-right:4px" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                添加角色
-              </VButton>
-            </div>
-          </section>
-
-          <!-- ========== 模型设置 ========== -->
-          <section class="settings-section">
-            <div class="section-header section-header--green">
-              <div class="section-header__icon">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
-              </div>
-              <div class="section-header__text">
-                <h3>模型设置</h3>
-                <p>配置AI Foundation提供的模型</p>
-              </div>
-            </div>
-            <div class="section-body">
-              <div class="form-field">
-                <label class="form-label">AI模型名称</label>
-                <span class="form-hint">留空使用AI Foundation默认模型，填写AiModel资源名称可指定模型</span>
-                <input type="text" v-model="settings.model.modelName" class="form-input" placeholder="留空使用默认模型" />
-              </div>
-            </div>
-          </section>
-
-          <!-- ========== Prompt设置 ========== -->
-          <section class="settings-section">
-            <div class="section-header section-header--amber">
-              <div class="section-header__icon">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-              </div>
-              <div class="section-header__text">
-                <h3>Prompt设置</h3>
-                <p>自定义AI回复的提示词模板</p>
-              </div>
-            </div>
-            <div class="section-body">
-              <!-- Preset Selection -->
-              <div class="form-field">
-                <label class="form-label">Prompt预设</label>
-                <span class="form-hint">选择预设风格，可多选</span>
-                <div class="preset-grid">
-                  <label v-for="p in promptPresets" :key="p.key" class="preset-item" :class="{ 'preset-item--active': isPresetEnabled(p.key) }">
-                    <input type="checkbox" :checked="isPresetEnabled(p.key)" @change="togglePreset(p.key)" class="preset-checkbox" />
-                    <div class="preset-item__content">
-                      <span class="preset-item__label">{{ p.label }}</span>
-                      <span class="preset-item__desc">{{ p.desc }}</span>
-                    </div>
+              <div class="section-body">
+                <!-- Switch Row: 自动回复 -->
+                <div class="form-row">
+                  <div class="form-row__label">
+                    <span class="form-label">自动回复</span>
+                    <span class="form-hint">启用后，AI将自动回复新评论</span>
+                  </div>
+                  <label class="toggle">
+                    <input type="checkbox" v-model="settings.basic.autoReply" />
+                    <span class="toggle__track"><span class="toggle__thumb"></span></span>
                   </label>
                 </div>
-              </div>
-              <div class="form-field">
-                <div class="form-field__header">
-                  <label class="form-label">自定义Prompt模板</label>
-                  <span class="form-hint--inline">留空使用默认模板</span>
+                <!-- Switch Row: 自动发布 -->
+                <div class="form-row">
+                  <div class="form-row__label">
+                    <span class="form-label">自动发布</span>
+                    <span class="form-hint">关闭后AI回复将存为草稿，需手动审核发布</span>
+                  </div>
+                  <label class="toggle">
+                    <input type="checkbox" v-model="settings.basic.autoPublish" />
+                    <span class="toggle__track"><span class="toggle__thumb"></span></span>
+                  </label>
                 </div>
-                <div class="var-tags">
-                  <span v-for="v in promptVariables" :key="v.name" class="var-tag">
-                    <code>{{ v.name }}</code> {{ v.desc }}
-                  </span>
-                </div>
-                <textarea v-model="settings.prompt.customPromptTemplate" rows="10" class="form-textarea form-textarea--mono" placeholder="自定义Prompt模板"></textarea>
-              </div>
-            </div>
-          </section>
-
-          <!-- ========== 数据清理 ========== -->
-          <section class="settings-section">
-            <div class="section-header section-header--red">
-              <div class="section-header__icon">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-              </div>
-              <div class="section-header__text">
-                <h3>数据清理</h3>
-                <p>自动清理过期的AI回复记录</p>
-              </div>
-            </div>
-            <div class="section-body">
-              <!-- Switch: 启用自动清理 -->
-              <div class="form-row">
-                <div class="form-row__label">
-                  <span class="form-label">启用自动清理</span>
-                  <span class="form-hint">每天自动清理超过保留天数的记录</span>
-                </div>
-                <label class="toggle">
-                  <input type="checkbox" v-model="settings.cleanup.cleanupEnabled" />
-                  <span class="toggle__track"><span class="toggle__thumb"></span></span>
-                </label>
-              </div>
-              <!-- Slider: 保留天数 -->
-              <div class="form-field">
-                <div class="form-field__header">
-                  <span class="form-label">保留天数</span>
-                  <span class="form-badge">{{ settings.cleanup.retentionDays }} 天</span>
-                </div>
-                <span class="form-hint">超过此天数的AI回复记录将被自动清理</span>
-                <div class="slider">
-                  <input type="range" v-model.number="settings.cleanup.retentionDays" min="1" max="365" class="slider__input" />
-                  <div class="slider__marks">
-                    <span>1天</span><span>180天</span><span>365天</span>
+                <!-- Slider: 最大对话轮次 -->
+                <div class="form-field">
+                  <div class="form-field__header">
+                    <span class="form-label">最大对话轮次</span>
+                    <span class="form-badge">{{ settings.basic.maxConversationRounds }}</span>
+                  </div>
+                  <span class="form-hint">同一评论线程中AI最多自动回复的轮次</span>
+                  <div class="slider">
+                    <input type="range" v-model.number="settings.basic.maxConversationRounds" min="1" max="100" class="slider__input" />
+                    <div class="slider__marks">
+                      <span>1</span><span>50</span><span>100</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-              <!-- Manual Cleanup -->
-              <div class="form-row form-row--bordered">
-                <div class="form-row__label">
-                  <span class="form-label">手动清理</span>
-                  <span class="form-hint">立即执行一次清理操作</span>
+                <!-- Input: 速率限制 -->
+                <div class="form-field">
+                  <label class="form-label">速率限制</label>
+                  <span class="form-hint">每分钟最大AI回复数量</span>
+                  <input type="number" v-model.number="settings.basic.rateLimitPerMinute" min="1" max="100" class="form-input" placeholder="10" />
                 </div>
-                <div class="form-row__action">
-                  <VButton size="sm" type="secondary" @click="performCleanup" :disabled="cleanupLoading">
-                    {{ cleanupLoading ? '清理中...' : '立即清理' }}
+                <!-- Slider: 最大重试次数 -->
+                <div class="form-field">
+                  <div class="form-field__header">
+                    <span class="form-label">最大重试次数</span>
+                    <span class="form-badge">{{ settings.basic.maxRetryCount }}</span>
+                  </div>
+                  <span class="form-hint">AI生成失败时的最大重试次数，采用指数退避策略</span>
+                  <div class="slider">
+                    <input type="range" v-model.number="settings.basic.maxRetryCount" min="1" max="10" class="slider__input" />
+                    <div class="slider__marks">
+                      <span>1</span><span>5</span><span>10</span>
+                    </div>
+                  </div>
+                </div>
+                <!-- Textarea: 评论者黑名单 -->
+                <div class="form-field">
+                  <div class="form-field__header">
+                    <span class="form-label">评论者黑名单</span>
+                    <button class="btn-link" @click="openCommenterDialog">
+                      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
+                      添加评论者
+                    </button>
+                  </div>
+                  <span class="form-hint">支持名称、邮箱和正则表达式。正则以 regex: 开头，如 regex:^spam.*</span>
+                  <textarea v-model="settings.basic.blockedCommenters" rows="2" class="form-textarea" placeholder="例如：张三, spam@example.com, 李四"></textarea>
+                </div>
+              </div>
+            </section>
+
+            <!-- ========== AI角色设置 ========== -->
+            <section v-if="activeTab === 'persona'" class="settings-section">
+              <div class="section-header section-header--purple">
+                <div class="section-header__icon">
+                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                </div>
+                <div class="section-header__text">
+                  <h3>AI角色设置</h3>
+                  <p>定义AI虚拟评论者的身份和风格</p>
+                </div>
+              </div>
+              <div class="section-body">
+                <!-- Persona List -->
+                <VLoading v-if="personasLoading" />
+                <div v-else-if="personas.length === 0" class="persona-empty">
+                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                  <span>请添加至少一个AI角色</span>
+                </div>
+                <div v-else class="persona-list">
+                  <div v-for="p in personas" :key="p.metadata.name" class="persona-card">
+                    <div class="persona-card__avatar">
+                      <img v-if="getPersonaAvatar(p)" :src="getPersonaAvatar(p)" alt="头像" />
+                      <span v-else class="persona-card__avatar-fallback">{{ (p.spec.displayName || '?').charAt(0) }}</span>
+                    </div>
+                    <div class="persona-card__info">
+                      <div class="persona-card__name">
+                        {{ p.spec.displayName || '未命名' }}
+                        <span v-if="p.spec.isDefault" class="persona-card__badge">默认</span>
+                      </div>
+                      <div class="persona-card__prompt">{{ p.spec.prompt || '暂无提示词' }}</div>
+                    </div>
+                    <div class="persona-card__actions">
+                      <button class="btn-icon" title="编辑" @click="openPersonaDialog(p)">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                      </button>
+                      <button v-if="!p.spec?.isDefault" class="btn-icon btn-icon--danger" title="删除" @click="deletePersona(p)">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                      </button>
+                      <button v-if="!p.spec?.isDefault" class="btn-icon" title="设为默认" @click="setDefaultPersona(p)">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/></svg>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <VButton type="secondary" @click="openPersonaDialog(null)">
+                  <svg style="width:16px;height:16px" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                  添加角色
+                </VButton>
+              </div>
+            </section>
+
+            <!-- ========== 模型设置 ========== -->
+            <section v-if="activeTab === 'model'" class="settings-section">
+              <div class="section-header section-header--green">
+                <div class="section-header__icon">
+                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                </div>
+                <div class="section-header__text">
+                  <h3>模型设置</h3>
+                  <p>配置AI Foundation提供的模型</p>
+                </div>
+              </div>
+              <div class="section-body">
+                <div class="form-field">
+                  <label class="form-label">AI模型名称</label>
+                  <span class="form-hint">留空使用AI Foundation默认模型，填写AiModel资源名称可指定模型</span>
+                  <input type="text" v-model="settings.model.modelName" class="form-input" placeholder="留空使用默认模型" />
+                </div>
+              </div>
+            </section>
+
+            <!-- ========== Prompt设置 ========== -->
+            <section v-if="activeTab === 'prompt'" class="settings-section">
+              <div class="section-header section-header--amber">
+                <div class="section-header__icon">
+                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                </div>
+                <div class="section-header__text">
+                  <h3>Prompt设置</h3>
+                  <p>自定义AI回复的提示词模板</p>
+                </div>
+              </div>
+              <div class="section-body">
+                <!-- Preset Selection -->
+                <div class="form-field">
+                  <label class="form-label">Prompt预设</label>
+                  <span class="form-hint">选择预设风格，可多选</span>
+                  <div class="preset-grid">
+                    <label v-for="p in promptPresets" :key="p.key" class="preset-item" :class="{ 'preset-item--active': isPresetEnabled(p.key) }">
+                      <input type="checkbox" :checked="isPresetEnabled(p.key)" @change="togglePreset(p.key)" class="preset-checkbox" />
+                      <div class="preset-item__content">
+                        <span class="preset-item__label">{{ p.label }}</span>
+                        <span class="preset-item__desc">{{ p.desc }}</span>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+                <div class="form-field">
+                  <div class="form-field__header">
+                    <label class="form-label">自定义Prompt模板</label>
+                    <span class="form-hint--inline">留空使用默认模板</span>
+                  </div>
+                  <div class="var-tags">
+                    <span v-for="v in promptVariables" :key="v.name" class="var-tag">
+                      <code>{{ v.name }}</code> {{ v.desc }}
+                    </span>
+                  </div>
+                  <textarea v-model="settings.prompt.customPromptTemplate" rows="10" class="form-textarea form-textarea--mono" placeholder="自定义Prompt模板"></textarea>
+                </div>
+              </div>
+            </section>
+
+            <!-- ========== 数据清理 ========== -->
+            <section v-if="activeTab === 'cleanup'" class="settings-section">
+              <div class="section-header section-header--red">
+                <div class="section-header__icon">
+                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                </div>
+                <div class="section-header__text">
+                  <h3>数据清理</h3>
+                  <p>自动清理过期的AI回复记录</p>
+                </div>
+              </div>
+              <div class="section-body">
+                <!-- Switch: 启用自动清理 -->
+                <div class="form-row">
+                  <div class="form-row__label">
+                    <span class="form-label">启用自动清理</span>
+                    <span class="form-hint">每天自动清理超过保留天数的记录</span>
+                  </div>
+                  <label class="toggle">
+                    <input type="checkbox" v-model="settings.cleanup.cleanupEnabled" />
+                    <span class="toggle__track"><span class="toggle__thumb"></span></span>
+                  </label>
+                </div>
+                <!-- Slider: 保留天数 -->
+                <div class="form-field">
+                  <div class="form-field__header">
+                    <span class="form-label">保留天数</span>
+                    <span class="form-badge">{{ settings.cleanup.retentionDays }} 天</span>
+                  </div>
+                  <span class="form-hint">超过此天数的AI回复记录将被自动清理</span>
+                  <div class="slider">
+                    <input type="range" v-model.number="settings.cleanup.retentionDays" min="1" max="365" class="slider__input" />
+                    <div class="slider__marks">
+                      <span>1天</span><span>180天</span><span>365天</span>
+                    </div>
+                  </div>
+                </div>
+                <!-- Manual Cleanup -->
+                <div class="form-row form-row--bordered">
+                  <div class="form-row__label">
+                    <span class="form-label">手动清理</span>
+                    <span class="form-hint">立即执行一次清理操作</span>
+                  </div>
+                  <div class="form-row__action">
+                    <VButton size="sm" type="secondary" @click="performCleanup" :disabled="cleanupLoading">
+                      {{ cleanupLoading ? '清理中...' : '立即清理' }}
+                    </VButton>
+                  </div>
+                </div>
+                <div v-if="cleanupResult !== null" class="cleanup-result">
+                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                  清理完成，共删除 {{ cleanupResult }} 条记录
+                </div>
+              </div>
+            </section>
+          </div>
+
+          <!-- Right: Sticky Save Bar -->
+          <div class="settings-sidebar">
+            <div class="settings-sidebar__inner">
+              <div class="sidebar-card sidebar-card--primary">
+                <div class="sidebar-card__header">
+                  <h4 class="sidebar-card__title">操作</h4>
+                  <span v-if="hasUnsavedChanges" class="sidebar-card__badge">未保存</span>
+                </div>
+                <div class="sidebar-card__actions">
+                  <VButton block type="primary" @click="saveSettings" :disabled="saving">
+                    <template v-if="!saving">
+                      <svg style="width:14px;height:14px" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                    </template>
+                    {{ saving ? '保存中...' : '保存设置' }}
+                  </VButton>
+                  <VButton block @click="fetchSettings" :disabled="saving">
+                    <svg style="width:14px;height:14px" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                    重置为当前值
                   </VButton>
                 </div>
               </div>
-              <div v-if="cleanupResult !== null" class="cleanup-result">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                清理完成，共删除 {{ cleanupResult }} 条记录
-              </div>
-            </div>
-          </section>
-        </div>
-
-        <!-- Right: Sticky Save Bar -->
-        <div class="settings-sidebar">
-          <div class="settings-sidebar__inner">
-            <div class="sidebar-card">
-              <h4 class="sidebar-card__title">操作</h4>
-              <div class="sidebar-card__actions">
-                <VButton block type="primary" @click="saveSettings" :disabled="saving">
-                  {{ saving ? '保存中...' : '保存设置' }}
-                </VButton>
-                <VButton block @click="fetchSettings">重置为当前值</VButton>
-              </div>
-            </div>
-            <div class="sidebar-card">
-              <h4 class="sidebar-card__title">可用模板变量</h4>
-              <div class="sidebar-card__vars">
-                <div v-for="v in promptVariables" :key="v.name" class="sidebar-var">
-                  <code>{{ v.name }}</code>
-                  <span>{{ v.desc }}</span>
+              <div v-if="activeTab === 'prompt'" class="sidebar-card">
+                <h4 class="sidebar-card__title">可用模板变量</h4>
+                <div class="sidebar-card__vars">
+                  <div v-for="v in promptVariables" :key="v.name" class="sidebar-var">
+                    <code>{{ v.name }}</code>
+                    <span>{{ v.desc }}</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -414,8 +447,16 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, watch } from "vue"
 import { axiosInstance, coreApiClient } from "@halo-dev/api-client"
-import { VPageHeader, VButton, VLoading, Toast, VModal, VSpace } from "@halo-dev/components"
-import { IconPlug } from "@halo-dev/components"
+import { VPageHeader, VButton, VLoading, Toast, VModal, VSpace, IconPlug } from "@halo-dev/components"
+
+const activeTab = ref("basic")
+const tabItems = [
+  { label: "基本设置", value: "basic" },
+  { label: "AI角色", value: "persona" },
+  { label: "模型设置", value: "model" },
+  { label: "Prompt", value: "prompt" },
+  { label: "数据清理", value: "cleanup" },
+]
 
 const promptVariables = [
   { name: '{{persona_prompt}}', desc: '人格提示词' },
@@ -487,6 +528,12 @@ const settings = reactive({
   model: { modelName: "" },
   prompt: { customPromptTemplate: "", enabledPresets: [] as string[] },
   cleanup: { cleanupEnabled: true, retentionDays: 30 },
+})
+
+// Track unsaved changes: snapshot of settings after last fetch/save
+const lastSavedSnapshot = ref("")
+const hasUnsavedChanges = computed(() => {
+  return JSON.stringify(settings) !== lastSavedSnapshot.value
 })
 
 const configMapName = "comment-ai-autopilot-configmap"
@@ -817,7 +864,11 @@ const fetchSettings = async () => {
       if (Object.keys(cleanup).length) { settings.cleanup.cleanupEnabled = cleanup.cleanupEnabled !== false; settings.cleanup.retentionDays = (cleanup.retentionDays as number) || 30 }
     }
   } catch (e) { console.error("Failed to fetch settings", e) }
-  finally { loading.value = false }
+  finally {
+    loading.value = false
+    // Update snapshot after fetch to reset unsaved indicator
+    lastSavedSnapshot.value = JSON.stringify(settings)
+  }
 }
 
 const saveSettings = async () => {
@@ -834,6 +885,8 @@ const saveSettings = async () => {
     }
     await coreApiClient.configMap.updateConfigMap({ name: configMapName, configMap: updated })
     Toast.success("设置已保存")
+    // Update snapshot after save to reset unsaved indicator
+    lastSavedSnapshot.value = JSON.stringify(settings)
   } catch (e) { console.error("Failed to save settings", e); Toast.error("保存设置失败") }
   finally { saving.value = false }
 }
@@ -847,6 +900,43 @@ onMounted(async () => {
 
 <style scoped>
 /* ===== Layout ===== */
+.settings-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 20px;
+  padding: 4px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  overflow-x: auto;
+}
+.settings-tab {
+  flex: 1;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #6b7280;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  text-align: center;
+}
+.settings-tab:hover {
+  background: #f3f4f6;
+  color: #374151;
+}
+.settings-tab--active {
+  background: #3b82f6;
+  color: #fff;
+}
+.settings-tab--active:hover {
+  background: #2563eb;
+  color: #fff;
+}
+
 .settings-container {
   display: grid;
   grid-template-columns: 1fr 280px;
@@ -1221,13 +1311,38 @@ onMounted(async () => {
   background: #fff; border: 1px solid #e5e7eb; border-radius: 12px;
   padding: 20px;
 }
+.sidebar-card--primary {
+  border-color: #dbeafe;
+  background: linear-gradient(135deg, #eff6ff 0%, #fff 100%);
+}
+.sidebar-card__header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 14px; padding-bottom: 10px;
+  border-bottom: 1px solid #f3f4f6;
+}
+.sidebar-card__badge {
+  display: inline-flex; align-items: center;
+  padding: 2px 8px; font-size: 11px; font-weight: 500;
+  background: #fef3c7; color: #d97706; border-radius: 4px;
+}
 .sidebar-card__title {
   font-size: 14px; font-weight: 600; color: #1f2937;
   margin: 0 0 14px; padding-bottom: 10px;
   border-bottom: 1px solid #f3f4f6;
 }
+.sidebar-card--primary .sidebar-card__title {
+  margin-bottom: 0; padding-bottom: 0; border-bottom: none;
+}
 .sidebar-card__actions {
   display: flex; flex-direction: column; gap: 8px;
+}
+/* Align icon + text inside VButton (btn-content wraps the default slot) */
+.sidebar-card__actions :deep(.btn-content),
+.section-body :deep(.btn-content) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
 }
 .sidebar-card__vars {
   display: flex; flex-direction: column; gap: 8px;

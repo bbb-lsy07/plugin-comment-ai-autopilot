@@ -2,7 +2,7 @@
 
 基于 AI 的 Halo 博客评论自动回复插件，支持多 AI 角色、自审核、自动发布和对话式连续回复。
 
-> **当前版本**: v1.0.0-beta.1
+> **当前版本**: v1.0.0-beta.2
 
 ## 功能特性
 
@@ -69,6 +69,26 @@ pnpm dev
 完整文档请访问 [AI回评文档站](https://nxxy335.top/comment-ai-autopilot)
 
 ## 更新日志
+
+### v1.0.0-beta.2
+
+**改进**
+
+- 通过 Halo 官方推荐的 `ExtensionGetter` 获取 AI Foundation 的 `AiModelService`，替换原先的跨 ClassLoader 反射调用方式
+- 在 `plugin.yaml` 中声明可选插件依赖 `ai-foundation?: "*"`，建立正确的插件依赖关系
+- 新增 `store.halo.run/recommended-apps` 注解，安装后可在应用市场推荐安装 AI Foundation 插件
+- 情感分析和内容审核改用 AI Foundation 结构化输出（`OutputSpec.choice`），分类更可靠
+- AI 调用改用 `GenerateTextRequest` 并设置 `maxRetries=2`，由 SDK 自动重试瞬时错误
+- AI 对话续接时自动获取之前的回复历史并注入到 Prompt 中，AI 能更好地理解对话上下文
+- 优化 AI 自审核评分机制：改为两阶段评估（安全检查 + 质量评分 1-5 分），评分映射到 0-100 分，替代原先的二值评分
+- 精简仪表盘：移除情感分布、近7日回复趋势、平均审核评分三个卡片，界面更简洁
+- 优化设置页面布局：按钮统一排版并添加图标，侧边栏新增"未保存"状态指示器
+- 优化日志页面评分显示：评分增加等级标签（优秀/良好/一般/较差）
+
+**Bug 修复**
+
+- 修复 RateLimitService 清理线程在插件停止时未关闭导致线程泄漏
+- 修复内容审核提示词要求"重新生成"但代码未使用重新生成内容的问题
 
 ### v1.0.0-beta.1
 
