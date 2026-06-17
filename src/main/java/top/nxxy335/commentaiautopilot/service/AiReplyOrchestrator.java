@@ -231,12 +231,13 @@ public class AiReplyOrchestrator {
                         }
                         return publishReply(context, aiReply, replyRecord, reviewResult.score(), personaName);
                     })
-                    .switchIfEmpty(
-                        publishReply(context, aiReply, replyRecord, 100, personaName)
-                    )
                     .onErrorResume(e -> {
-                        log.warn("[Orchestrator] Review error, auto-passing: {}", e.getMessage());
-                        return publishReply(context, aiReply, replyRecord, 100, personaName);
+                        // review() already handles errors internally (returns PASS),
+                        // so this only fires for errors from publishReply/updateRecord.
+                        // Do NOT re-call publishReply to avoid double-publish / overwriting published=false.
+                        log.error("[Orchestrator] Error during review/publish for {}: {}",
+                            context.commentId(), e.getMessage(), e);
+                        return Mono.empty();
                     });
             });
     }
