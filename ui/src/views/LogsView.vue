@@ -42,7 +42,7 @@
     <div class="mx-4 mt-2 flex items-center gap-3">
       <select
         v-model="filterStatus"
-        class="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+        class="rounded-md border border-gray-300 pl-3 pr-8 py-1.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
       >
         <option value="">全部状态</option>
         <option value="PASS">通过</option>
@@ -52,7 +52,7 @@
       </select>
       <select
         v-model="filterSentiment"
-        class="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+        class="rounded-md border border-gray-300 pl-3 pr-8 py-1.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
       >
         <option value="">全部情感</option>
         <option value="POSITIVE">正面</option>
