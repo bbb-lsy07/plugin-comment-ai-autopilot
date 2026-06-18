@@ -153,6 +153,10 @@
                     <div class="persona-card__info">
                       <div class="persona-card__name">
                         {{ p.spec.displayName || '未命名' }}
+                        <span v-if="p.spec.gender === 'female'" class="persona-card__badge persona-card__badge--female">女</span>
+                        <span v-else-if="p.spec.gender === 'male'" class="persona-card__badge persona-card__badge--male">男</span>
+                        <span v-if="p.spec.neutralVoice" class="persona-card__badge persona-card__badge--neutral-voice">中性语气</span>
+                        <span v-if="p.spec.wakeWord" class="persona-card__badge persona-card__badge--wake-word">唤醒: {{ p.spec.wakeWord }}</span>
                         <span v-if="p.spec.isDefault" class="persona-card__badge">默认</span>
                       </div>
                       <div class="persona-card__prompt">{{ p.spec.prompt || '暂无提示词' }}</div>
@@ -396,6 +400,33 @@
             <span class="form-hint">用于Gravatar头像服务，留空使用默认头像</span>
             <input type="email" v-model="personaForm.email" class="form-input" placeholder="ai@example.com" />
           </div>
+          <!-- Gender & Neutral Voice -->
+          <div class="form-field">
+            <label class="form-label">性别与语气</label>
+            <div class="gender-voice-row">
+              <div class="gender-select">
+                <label class="gender-option" :class="{ 'gender-option--active': personaForm.gender === 'female' }">
+                  <input type="radio" v-model="personaForm.gender" value="female" class="gender-radio" />
+                  <span class="gender-option__label">女</span>
+                </label>
+                <label class="gender-option" :class="{ 'gender-option--active': personaForm.gender === 'male' }">
+                  <input type="radio" v-model="personaForm.gender" value="male" class="gender-radio" />
+                  <span class="gender-option__label">男</span>
+                </label>
+              </div>
+              <div class="voice-toggle">
+                <input type="checkbox" v-model="personaForm.neutralVoice" class="form-checkbox" id="neutralVoice" />
+                <label for="neutralVoice" class="text-sm text-gray-600 cursor-pointer">中性语气</label>
+              </div>
+            </div>
+            <span class="form-hint">勾选中性语气则使用中性语气，取消勾选则跟随性别语气</span>
+          </div>
+          <!-- Wake Word -->
+          <div class="form-field">
+            <label class="form-label">唤醒词</label>
+            <span class="form-hint">评论以此词开头则唤醒该角色回复，留空不启用。</span>
+            <input type="text" v-model="personaForm.wakeWord" class="form-input" placeholder="如：小回小回" />
+          </div>
           <!-- Prompt -->
           <div class="form-field">
             <label class="form-label">人格提示词</label>
@@ -518,6 +549,9 @@ const personaSaving = ref(false)
 const personaForm = reactive({
   displayName: '',
   email: '',
+  gender: 'female',
+  neutralVoice: false,
+  wakeWord: '',
   prompt: '',
   isDefault: false,
 })
@@ -708,11 +742,17 @@ const openPersonaDialog = async (persona: any | null) => {
   if (persona) {
     personaForm.displayName = persona.spec.displayName || ''
     personaForm.email = persona.spec.email || ''
+    personaForm.gender = persona.spec.gender || 'female'
+    personaForm.neutralVoice = persona.spec.neutralVoice || false
+    personaForm.wakeWord = persona.spec.wakeWord || ''
     personaForm.prompt = persona.spec.prompt || ''
     personaForm.isDefault = persona.spec.isDefault || false
   } else {
     personaForm.displayName = ''
     personaForm.email = ''
+    personaForm.gender = 'female'
+    personaForm.neutralVoice = false
+    personaForm.wakeWord = ''
     personaForm.prompt = ''
     personaForm.isDefault = false
   }
@@ -754,6 +794,9 @@ const savePersona = async () => {
       spec: {
         displayName: personaForm.displayName,
         email: personaForm.email,
+        gender: personaForm.gender,
+        neutralVoice: personaForm.neutralVoice,
+        wakeWord: personaForm.wakeWord,
         prompt: personaForm.prompt,
         isDefault: personaForm.isDefault,
       },
@@ -1251,6 +1294,18 @@ onMounted(async () => {
   padding: 1px 8px; font-size: 11px; font-weight: 500;
   background: #dbeafe; color: #2563eb; border-radius: 4px;
 }
+.persona-card__badge--female {
+  background: #fce7f3; color: #be185d;
+}
+.persona-card__badge--male {
+  background: #dbeafe; color: #1d4ed8;
+}
+.persona-card__badge--neutral-voice {
+  background: #f3f4f6; color: #4b5563;
+}
+.persona-card__badge--wake-word {
+  background: #fef3c7; color: #b45309;
+}
 .persona-card__prompt {
   font-size: 12px; color: #6b7280; margin-top: 2px;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
@@ -1282,6 +1337,56 @@ onMounted(async () => {
   background: linear-gradient(135deg, #faf5ff 0%, #f9fafb 100%);
   border: 1px solid #ede9fe;
   border-radius: 10px;
+}
+
+.form-checkbox {
+  width: 16px; height: 16px;
+  accent-color: #3b82f6;
+  cursor: pointer;
+}
+
+/* ===== Gender Select ===== */
+.gender-voice-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.gender-select {
+  display: flex; gap: 8px;
+}
+.gender-option {
+  flex: 1;
+  display: flex; align-items: center; justify-content: center;
+  padding: 8px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  background: #f9fafb;
+}
+.gender-option:hover {
+  border-color: #d1d5db;
+  background: #f3f4f6;
+}
+.gender-option--active {
+  border-color: #3b82f6;
+  background: #eff6ff;
+}
+.gender-radio {
+  display: none;
+}
+.gender-option__label {
+  font-size: 14px; font-weight: 500; color: #374151;
+}
+.gender-option--active .gender-option__label {
+  color: #2563eb;
+}
+
+.voice-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
 }
 
 /* ===== Button Link ===== */
@@ -1434,4 +1539,92 @@ onMounted(async () => {
 .dialog__item-name { font-size: 14px; font-weight: 500; color: #1f2937; }
 .dialog__item-email { font-size: 12px; color: #9ca3af; margin-top: 1px; }
 .dialog__item-add { width: 18px; height: 18px; color: #3b82f6; flex-shrink: 0; }
+
+/* ===== Mobile Responsive ===== */
+@media (max-width: 768px) {
+  .settings-page :deep(.page-header) {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .settings-page :deep(.page-header-actions) {
+    width: 100%;
+    overflow-x: auto;
+  }
+  .settings-page :deep(.page-header-actions .space-x-2) {
+    display: flex;
+    gap: 8px;
+    flex-wrap: nowrap;
+  }
+
+  .settings-tabs {
+    gap: 2px;
+    padding: 3px;
+    border-radius: 10px;
+  }
+  .settings-tab {
+    padding: 8px 10px;
+    font-size: 13px;
+  }
+
+  .settings-container {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .settings-sidebar {
+    position: static;
+    order: -1;
+  }
+  .sidebar-card__actions {
+    flex-direction: row;
+    gap: 8px;
+  }
+  .sidebar-card__actions :deep(.btn) {
+    flex: 1;
+  }
+
+  .section-header {
+    padding: 12px 16px;
+  }
+  .section-body {
+    padding: 16px;
+  }
+
+  .preset-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .form-row {
+    padding: 10px 12px;
+  }
+  .form-row--bordered {
+    margin: 0 -16px;
+    padding: 12px 16px;
+  }
+
+  .persona-card {
+    padding: 10px 12px;
+  }
+  .persona-card__prompt {
+    max-width: 100%;
+  }
+
+  .dialog {
+    max-width: calc(100vw - 32px);
+    margin: 16px;
+    border-radius: 12px;
+  }
+  .dialog__header {
+    padding: 16px 16px 0;
+  }
+  .dialog__search {
+    padding: 12px 16px;
+  }
+  .dialog__search-icon {
+    left: 28px;
+  }
+  .dialog__body {
+    max-height: 260px;
+  }
+}
 </style>

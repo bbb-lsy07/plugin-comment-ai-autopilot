@@ -7,19 +7,19 @@
 
 ## 安装
 
-### 方式一：从 Release 下载
+### 方式一：应用商店安装
+
+进入 **插件** → **安装** → 应用市场搜索 **AI回评** → 安装，或前往 [Halo 应用商店](https://www.halo.run/store/apps/app-mo5tivjt) 一键安装。
+
+### 方式二：从 Release 下载
 
 1. 前往 [GitHub Releases](https://github.com/sunny-335/plugin-comment-ai-autopilot/releases) 下载最新的 `.jar` 文件
 2. 登录 Halo 管理后台
-3. 进入 **插件** → **已安装** → 点击右上角 **安装** 按钮
+3. 进入 **插件** → **安装** → **本地上传**
 4. 选择下载的 `.jar` 文件上传
 5. 安装完成后启用插件
 
-::: tip 推荐安装
-安装本插件后，应用市场会推荐安装 AI Foundation 插件（本插件的必要依赖）。
-:::
-
-### 方式二：从源码构建
+### 方式三：从源码构建
 
 ```bash
 # 克隆仓库

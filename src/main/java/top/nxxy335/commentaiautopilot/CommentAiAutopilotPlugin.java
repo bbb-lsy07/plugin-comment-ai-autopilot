@@ -67,6 +67,9 @@ public class CommentAiAutopilotPlugin extends BasePlugin {
                 spec.setDisplayName("小回");
                 spec.setPrompt("你是一个友善的评论者，回复简洁自然，像朋友聊天一样。");
                 spec.setEmail("");
+                spec.setGender("female");
+                spec.setNeutralVoice(true);
+                spec.setWakeWord("小回小回");
                 spec.setIsDefault(true);
                 persona.setSpec(spec);
                 return client.create(persona);

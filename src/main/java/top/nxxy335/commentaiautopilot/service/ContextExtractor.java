@@ -119,6 +119,10 @@ public class ContextExtractor {
                         ))
                     )
                 )
+                .onErrorResume(e -> {
+                    log.warn("[ContextExtractor] Failed to fetch Post {}: {}", postName, e.getMessage());
+                    return Mono.empty();
+                })
                 .defaultIfEmpty(new CommentContext(
                     comment.getMetadata().getName(),
                     postName,
@@ -139,7 +143,7 @@ public class ContextExtractor {
         if (subjectRef != null && "SinglePage".equals(subjectRef.getKind())) {
             String postName = subjectRef.getName();
             return client.fetch(SinglePage.class, postName)
-                .flatMap(singlePage -> getPostContent(postName)
+                .flatMap(singlePage -> getSinglePageContent(postName)
                     .flatMap(content -> getCommentCount(comment.getMetadata().getName())
                         .map(commentCount -> new CommentContext(
                             comment.getMetadata().getName(),
@@ -158,6 +162,10 @@ public class ContextExtractor {
                         ))
                     )
                 )
+                .onErrorResume(e -> {
+                    log.warn("[ContextExtractor] Failed to fetch SinglePage {}: {}", postName, e.getMessage());
+                    return Mono.empty();
+                })
                 .defaultIfEmpty(new CommentContext(
                     comment.getMetadata().getName(),
                     postName,
@@ -228,6 +236,10 @@ public class ContextExtractor {
                         )
                     )
                 )
+                .onErrorResume(e -> {
+                    log.warn("[ContextExtractor] Failed to fetch Post {} for reply: {}", postName, e.getMessage());
+                    return Mono.empty();
+                })
                 .defaultIfEmpty(new CommentContext(
                     commentName,
                     postName,
@@ -248,7 +260,7 @@ public class ContextExtractor {
         if (subjectRef != null && "SinglePage".equals(subjectRef.getKind())) {
             String postName = subjectRef.getName();
             return client.fetch(SinglePage.class, postName)
-                .flatMap(singlePage -> getPostContent(postName)
+                .flatMap(singlePage -> getSinglePageContent(postName)
                     .flatMap(content -> getCommentCount(commentName)
                         .flatMap(commentCount -> historyMono
                             .map(history -> new CommentContext(
@@ -269,6 +281,10 @@ public class ContextExtractor {
                         )
                     )
                 )
+                .onErrorResume(e -> {
+                    log.warn("[ContextExtractor] Failed to fetch SinglePage {} for reply: {}", postName, e.getMessage());
+                    return Mono.empty();
+                })
                 .defaultIfEmpty(new CommentContext(
                     commentName,
                     postName,
@@ -359,6 +375,23 @@ public class ContextExtractor {
             .map(html -> {
                 if (html != null && !html.isBlank()) {
                     return Jsoup.clean(html, Safelist.none());
+                }
+                return "";
+            })
+            .defaultIfEmpty("");
+    }
+
+    private Mono<String> getSinglePageContent(String pageName) {
+        // SinglePage doesn't have a dedicated ContentService in Halo API,
+        // and Snapshot content requires patch merging which is too complex.
+        // Use the excerpt from status as a fallback for context.
+        return client.fetch(SinglePage.class, pageName)
+            .mapNotNull(page -> {
+                if (page.getStatus() != null && page.getStatus().getExcerpt() != null) {
+                    String excerpt = page.getStatus().getExcerpt();
+                    if (excerpt != null && !excerpt.isBlank()) {
+                        return excerpt;
+                    }
                 }
                 return "";
             })

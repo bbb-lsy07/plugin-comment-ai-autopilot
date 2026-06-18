@@ -70,9 +70,10 @@ public class AiReplyOrchestrator {
      * @param replyName       the Reply name that triggered this (null for top-level comments)
      * @param isAiConversation true when someone replied to AI's reply (conversation continuation)
      * @param personaName     the persona name to use (null for default persona)
+     * @param wakeWordTriggered true when triggered by a wake word (bypasses page-level enable check)
      */
     public Mono<Void> processComment(String commentName, String replyName, boolean isAiConversation,
-                                      String personaName) {
+                                      String personaName, boolean wakeWordTriggered) {
         String lockKey = isAiConversation ? commentName + ":conv:" + replyName : commentName + ":top";
 
         // Clean up stale locks before acquiring new one
@@ -84,12 +85,12 @@ public class AiReplyOrchestrator {
             return Mono.empty();
         }
 
-        log.info("[Orchestrator] Start processing: comment={}, replyName={}, isAiConversation={}, personaName={}",
-            commentName, replyName, isAiConversation, personaName);
+        log.info("[Orchestrator] Start processing: comment={}, replyName={}, isAiConversation={}, personaName={}, wakeWordTriggered={}",
+            commentName, replyName, isAiConversation, personaName, wakeWordTriggered);
 
         return isAutoReplyEnabled()
             .flatMap(enabled -> {
-                if (!enabled) {
+                if (!enabled && !wakeWordTriggered) {
                     log.info("[Orchestrator] Auto reply disabled, skipping: {}", commentName);
                     return Mono.empty();
                 }
@@ -99,42 +100,24 @@ public class AiReplyOrchestrator {
                             log.info("[Orchestrator] 速率限制，跳过: {}", commentName);
                             return Mono.empty();
                         }
+                        // Wake word triggered: skip page-level annotation check
+                        if (wakeWordTriggered) {
+                            return checkBlockedCommenters(commentName)
+                                .flatMap(blocked -> {
+                                    if (blocked) {
+                                        log.info("[Orchestrator] Commenter blocked, skipping wake word: {}", commentName);
+                                        return Mono.empty();
+                                    }
+                                    return proceedWithProcess(commentName, replyName, isAiConversation, personaName);
+                                });
+                        }
                         return filterService.shouldProcess(commentName)
                             .flatMap(shouldProcess -> {
                                 if (!shouldProcess) {
                                     log.info("[Orchestrator] Filtered out by rules: {}", commentName);
                                     return Mono.empty();
                                 }
-                        // For top-level comments: skip if we already have ANY reply record
-                        // For AI conversation: skip if we already replied to THIS specific reply
-                        if (!isAiConversation) {
-                            return hasExistingReply(commentName)
-                                .flatMap(hasReply -> {
-                                    if (hasReply) {
-                                        log.info("[Orchestrator] Already have reply record for: {}, skipping", commentName);
-                                        return Mono.empty();
-                                    }
-                                    return doProcess(commentName, replyName, isAiConversation, personaName);
-                                });
-                        }
-                        // Check conversation rounds limit
-                        return getMaxConversationRounds()
-                            .flatMap(maxRounds -> getConversationRounds(commentName)
-                                .flatMap(rounds -> {
-                                    if (rounds >= maxRounds) {
-                                        log.info("[Orchestrator] 对话轮次已达上限({}/{}), 跳过: {}", rounds, maxRounds, commentName);
-                                        return Mono.empty();
-                                    }
-                                    return hasExistingConversationReply(replyName)
-                                        .flatMap(hasReply -> {
-                                            if (hasReply) {
-                                                log.info("[Orchestrator] Already replied to reply: {}, skipping", replyName);
-                                                return Mono.empty();
-                                            }
-                                            return doProcess(commentName, replyName, isAiConversation, personaName);
-                                        });
-                                })
-                            );
+                                return proceedWithProcess(commentName, replyName, isAiConversation, personaName);
                             });
                     });
             })
@@ -145,6 +128,81 @@ public class AiReplyOrchestrator {
                 log.debug("[Orchestrator] Released processing lock for: {}", lockKey);
             })
             .then();
+    }
+
+    /**
+     * Proceed with processing after all checks have passed.
+     * Handles dedup checks and conversation round limits.
+     */
+    private Mono<Void> proceedWithProcess(String commentName, String replyName,
+                                           boolean isAiConversation, String personaName) {
+        // For top-level comments: skip if we already have ANY reply record
+        // For AI conversation: skip if we already replied to THIS specific reply
+        if (!isAiConversation) {
+            return hasExistingReply(commentName)
+                .flatMap(hasReply -> {
+                    if (hasReply) {
+                        log.info("[Orchestrator] Already have reply record for: {}, skipping", commentName);
+                        return Mono.empty();
+                    }
+                    return doProcess(commentName, replyName, isAiConversation, personaName);
+                });
+        }
+        // Check conversation rounds limit
+        return getMaxConversationRounds()
+            .flatMap(maxRounds -> getConversationRounds(commentName)
+                .flatMap(rounds -> {
+                    if (rounds >= maxRounds) {
+                        log.info("[Orchestrator] 对话轮次已达上限({}/{}), 跳过: {}", rounds, maxRounds, commentName);
+                        return Mono.empty();
+                    }
+                    return hasExistingConversationReply(replyName)
+                        .flatMap(hasReply -> {
+                            if (hasReply) {
+                                log.info("[Orchestrator] Already replied to reply: {}, skipping", replyName);
+                                return Mono.empty();
+                            }
+                            return doProcess(commentName, replyName, isAiConversation, personaName);
+                        });
+                })
+            );
+    }
+
+    /**
+     * Check if the commenter is in the blocked list.
+     */
+    private Mono<Boolean> checkBlockedCommenters(String commentName) {
+        return client.fetch(run.halo.app.core.extension.content.Comment.class, commentName)
+            .flatMap(comment -> {
+                var owner = comment.getSpec().getOwner();
+                if (owner == null) return Mono.just(false);
+                String displayName = owner.getDisplayName();
+                String email = run.halo.app.core.extension.content.Comment.CommentOwner.KIND_EMAIL.equals(owner.getKind())
+                    ? owner.getName() : "";
+                return client.fetch(ConfigMap.class, CONFIG_MAP_NAME)
+                    .mapNotNull(cm -> {
+                        var data = cm.getData();
+                        if (data == null) return false;
+                        String basicJson = data.get("basic");
+                        if (basicJson == null || basicJson.isBlank()) return false;
+                        try {
+                            JsonNode node = objectMapper.readTree(basicJson);
+                            String blockedStr = node.has("blockedCommenters") ? node.get("blockedCommenters").asText("") : "";
+                            if (blockedStr.isBlank()) return false;
+                            for (String item : blockedStr.split(",")) {
+                                String trimmed = item.trim();
+                                if (!trimmed.isEmpty() && (trimmed.equalsIgnoreCase(displayName) || trimmed.equalsIgnoreCase(email))) {
+                                    return true;
+                                }
+                            }
+                            return false;
+                        } catch (Exception e) {
+                            return false;
+                        }
+                    })
+                    .defaultIfEmpty(false);
+            })
+            .defaultIfEmpty(false);
     }
 
     private Mono<Void> doProcess(String commentName, String replyName, boolean isAiConversation,

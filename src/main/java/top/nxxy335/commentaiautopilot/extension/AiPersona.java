@@ -34,6 +34,16 @@ public class AiPersona extends AbstractExtension {
         @Schema(description = "邮箱（用于Gravatar头像）")
         private String email;
 
+        @Schema(description = "角色性别（male/female）")
+        private String gender;
+
+        @Schema(description = "是否使用中性语气，默认false即跟随性别语气")
+        @JsonProperty("neutralVoice")
+        private Boolean neutralVoice;
+
+        @Schema(description = "唤醒词，评论以此开头则唤醒该角色回复，留空则不启用唤醒")
+        private String wakeWord;
+
         @Schema(description = "是否为默认角色")
         @JsonProperty("isDefault")
         private Boolean isDefault;

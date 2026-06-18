@@ -12,6 +12,7 @@ import run.halo.app.extension.controller.Reconciler;
 import top.nxxy335.commentaiautopilot.extension.AiCommentReply;
 import top.nxxy335.commentaiautopilot.service.AiReplyOrchestrator;
 import top.nxxy335.commentaiautopilot.service.PersonaResolver;
+import top.nxxy335.commentaiautopilot.service.WakeWordService;
 
 import java.time.Instant;
 import java.util.HashMap;
@@ -25,6 +26,7 @@ public class CommentReconciler implements Reconciler<Reconciler.Request> {
     private final ExtensionClient client;
     private final AiReplyOrchestrator orchestrator;
     private final PersonaResolver personaResolver;
+    private final WakeWordService wakeWordService;
 
     private static final String PROCESSED_ANNOTATION = "comment-ai-autopilot.nxxy335.top/processed";
     private static final String AI_PERSONA_OWNER_PREFIX = "ai-persona-";
@@ -76,18 +78,38 @@ public class CommentReconciler implements Reconciler<Reconciler.Request> {
             markProcessed(comment);
             client.update(comment);
 
-            // Read persona name from the post's annotations
-            String personaName = personaResolver.getPersonaNameFromCommentBlocking(client, comment);
+            // Check for wake word in comment content
+            String commentContent = getCommentContent(comment);
+            log.info("[CommentReconciler] Wake word check for comment {}: content='{}'",
+                name, commentContent.length() > 80 ? commentContent.substring(0, 80) + "..." : commentContent);
+            var wakeMatch = wakeWordService.checkWakeWordBlocking(client, commentContent);
 
-            // Top-level comment → always trigger AI reply
-            log.info("[CommentReconciler] New top-level comment detected: {}, personaName: {}", name, personaName);
-            orchestrator.processComment(name, null, false, personaName)
-                .subscribeOn(Schedulers.boundedElastic())
-                .subscribe(
-                    null,
-                    e -> log.error("[CommentReconciler] Error processing comment {}: {}", name, e.getMessage(), e),
-                    () -> log.info("[CommentReconciler] Processing completed for comment: {}", name)
-                );
+            if (wakeMatch != null) {
+                // Wake word matched: trigger AI reply with the matched persona,
+                // bypassing normal page-level enable check
+                log.info("[CommentReconciler] Wake word '{}' matched for persona '{}', triggering reply for: {}",
+                    wakeMatch.wakeWord(), wakeMatch.personaName(), name);
+                orchestrator.processComment(name, null, false, wakeMatch.personaName(), true)
+                    .subscribeOn(Schedulers.boundedElastic())
+                    .subscribe(
+                        null,
+                        e -> log.error("[CommentReconciler] Error processing wake word comment {}: {}", name, e.getMessage(), e),
+                        () -> log.info("[CommentReconciler] Wake word processing completed for comment: {}", name)
+                    );
+            } else {
+                // Normal flow: read persona name from the post's annotations
+                String personaName = personaResolver.getPersonaNameFromCommentBlocking(client, comment);
+
+                // Top-level comment → always trigger AI reply
+                log.info("[CommentReconciler] New top-level comment detected: {}, personaName: {}", name, personaName);
+                orchestrator.processComment(name, null, false, personaName, false)
+                    .subscribeOn(Schedulers.boundedElastic())
+                    .subscribe(
+                        null,
+                        e -> log.error("[CommentReconciler] Error processing comment {}: {}", name, e.getMessage(), e),
+                        () -> log.info("[CommentReconciler] Processing completed for comment: {}", name)
+                    );
+            }
         });
 
         return Result.doNotRetry();
@@ -120,6 +142,22 @@ public class CommentReconciler implements Reconciler<Reconciler.Request> {
             comment.getMetadata().setAnnotations(annotations);
         }
         annotations.put(PROCESSED_ANNOTATION, "true");
+    }
+
+    private String getCommentContent(Comment comment) {
+        if (comment.getSpec() == null) return "";
+        // Always strip HTML to get plain text for wake word matching
+        String raw = comment.getSpec().getRaw();
+        if (raw != null && !raw.isBlank()) {
+            // raw might still contain HTML in some cases, always strip
+            String plain = org.jsoup.Jsoup.clean(raw, org.jsoup.safety.Safelist.none()).trim();
+            if (!plain.isBlank()) return plain;
+        }
+        String content = comment.getSpec().getContent();
+        if (content != null && !content.isBlank()) {
+            return org.jsoup.Jsoup.clean(content, org.jsoup.safety.Safelist.none()).trim();
+        }
+        return "";
     }
 
     @Override

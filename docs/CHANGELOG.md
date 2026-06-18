@@ -1,8 +1,15 @@
 # 更新日志
 
-## v1.0.0-b26cea
+## v1.0.0
 
 > 2026-06-18
+
+### 新功能
+
+- **唤醒词**：评论以唤醒词开头可唤醒指定角色回复，支持自定义唤醒词，可在未启用AI回评的页面使用唤醒词召唤AI，二级评论同样支持
+- **性别配置**：AI角色支持性别设置（男/女），AI回复时会保持对应性别身份
+- **语气风格**：支持中性语气复选框，勾选后使用中性语气，取消勾选则跟随性别语气（女性温柔细腻/男性沉稳理性）
+- **身份提示词强化**：角色身份信息前置到Prompt最开头（【核心身份】），安全规范中增加身份约束，确保AI始终保持角色身份
 
 ### 改进
 
@@ -11,11 +18,22 @@
 - **优化评分显示**：评分数字与等级标签之间添加间距，等级标签增加底色背景（优秀/良好/一般/较差）
 - **优化状态标签**：通过状态、发布状态、情感标签统一使用带底色的标签样式
 - **支持页面链接显示**：日志中新增独立页面（SinglePage）链接显示，之前仅支持文章链接
+- **移动端适配**：仪表盘、配置、日志页面全面适配移动端
 - **ObjectMapper 统一注入**：FilterService 和 PromptBuilder 中的 `new ObjectMapper()` 改为 Spring 构造函数注入
 - **服务端过滤优化**：日志列表查询改用 `Queries.equal()` 服务端过滤 status/sentiment，减少内存过滤开销
 - **新增索引**：为 AiCommentReply 扩展添加 `spec.sentiment`、`spec.published`、`spec.postKind` 索引
 - **新增 postKind 字段**：区分关联内容类型（Post/SinglePage），支持页面评论的链接生成
 - **PromptBuilder 情感提示**：适配 5 级情感分类，新增 VERY_POSITIVE 和 VERY_NEGATIVE 的语气提示
+
+### Bug 修复
+
+- **修复 ObjectMapper Bean 不存在**：Halo 插件上下文中没有自动注册 ObjectMapper Bean，创建 ObjectMapperConfiguration 手动注册
+- **修复 AI 回复仍说没有性别**：将身份信息前置到 Prompt 最开头，安全规范中删除"作为AI助手"措辞，新增身份约束
+- **修复唤醒词无法唤醒**：评论内容提取时对 raw 也做 HTML strip（Jsoup.clean），所有内容做 trim()，wakeWord 也做 trim()
+- **修复二级评论唤醒词检查位置错误**：唤醒词检查提前到 isReplyToAi 判断之前
+- **修复 SinglePage 内容获取 404**：PostContentService 不能用于 SinglePage，改用 SinglePage.getStatus().getExcerpt()
+- **修复 Post/SinglePage 404 容错**：fetch 添加 onErrorResume 降级为空上下文继续处理
+- **修复 Sort 参数 null 警告**：listAll 调用改为 Sort.unsorted()
 
 ---
 

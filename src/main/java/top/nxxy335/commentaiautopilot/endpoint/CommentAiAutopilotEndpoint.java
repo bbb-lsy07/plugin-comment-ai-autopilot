@@ -643,7 +643,7 @@ public class CommentAiAutopilotEndpoint implements CustomEndpoint {
                 // Read persona name from post annotations
                 return personaResolver.getPersonaNameFromComment(commentName)
                     .flatMap(personaName ->
-                        orchestrator.processComment(commentName, null, false, personaName)
+                        orchestrator.processComment(commentName, null, false, personaName, false)
                             .then(ServerResponse.ok().bodyValue(Map.of("message", "已触发AI回复")))
                     );
             });
@@ -670,7 +670,7 @@ public class CommentAiAutopilotEndpoint implements CustomEndpoint {
                         }
                         return personaResolver.getPersonaNameFromComment(commentName)
                             .flatMap(personaName ->
-                                orchestrator.processComment(commentName, replyName, true, personaName)
+                                orchestrator.processComment(commentName, replyName, true, personaName, false)
                                     .then(ServerResponse.ok().bodyValue(Map.of("message", "已触发AI对话回复")))
                             );
                     });

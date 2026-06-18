@@ -254,3 +254,27 @@ onMounted(() => {
   fetchHealth()
 })
 </script>
+
+<style scoped>
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Mobile responsive */
+@media (max-width: 640px) {
+  .comment-ai-autopilot-home :deep(.page-header) {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .comment-ai-autopilot-home :deep(.page-header-actions) {
+    width: 100%;
+  }
+  .comment-ai-autopilot-home :deep(.page-header-actions .space-y-2) {
+    flex-direction: row;
+    width: 100%;
+  }
+}
+</style>

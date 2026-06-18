@@ -13,6 +13,7 @@ import run.halo.app.extension.controller.Reconciler;
 import top.nxxy335.commentaiautopilot.extension.AiCommentReply;
 import top.nxxy335.commentaiautopilot.service.AiReplyOrchestrator;
 import top.nxxy335.commentaiautopilot.service.PersonaResolver;
+import top.nxxy335.commentaiautopilot.service.WakeWordService;
 
 import java.time.Instant;
 import java.util.HashMap;
@@ -26,6 +27,7 @@ public class ReplyReconciler implements Reconciler<Reconciler.Request> {
     private final ExtensionClient client;
     private final AiReplyOrchestrator orchestrator;
     private final PersonaResolver personaResolver;
+    private final WakeWordService wakeWordService;
 
     private static final String PROCESSED_ANNOTATION = "comment-ai-autopilot.nxxy335.top/processed";
     private static final String AI_PERSONA_OWNER_PREFIX = "ai-persona-";
@@ -75,25 +77,21 @@ public class ReplyReconciler implements Reconciler<Reconciler.Request> {
                 return;
             }
 
-            // Check if this reply is specifically replying to an AI reply
-            // by checking the quoteReply field
-            String quoteReply = reply.getSpec().getQuoteReply();
-
-            if (quoteReply == null || quoteReply.isBlank()) {
-                // No quoteReply - this is a direct reply to the top-level comment,
-                // NOT a reply to AI. Skip it (CommentReconciler handles top-level comments).
-                log.debug("[ReplyReconciler] Reply {} has no quoteReply, skipping (not a reply to AI)", name);
-                markProcessed(reply);
-                client.update(reply);
-                return;
-            }
+            // Check for wake word FIRST - wake word can bypass "must be reply to AI" check
+            String replyContent = getReplyContent(reply);
+            log.info("[ReplyReconciler] Wake word check for reply {}: content='{}'",
+                name, replyContent.length() > 80 ? replyContent.substring(0, 80) + "..." : replyContent);
+            var wakeMatch = wakeWordService.checkWakeWordBlocking(client, replyContent);
 
             // This reply quotes another reply - check if the quoted reply is from AI
-            boolean isReplyToAi = isAiReply(quoteReply);
+            String quoteReply = reply.getSpec().getQuoteReply();
+            boolean isReplyToAi = quoteReply != null && !quoteReply.isBlank() && isAiReply(quoteReply);
             log.debug("[ReplyReconciler] Reply {} quotes {}, isAiReply={}", name, quoteReply, isReplyToAi);
 
-            if (!isReplyToAi) {
-                log.debug("[ReplyReconciler] Not a reply to AI, skipping: {}", name);
+            // Skip if not a reply to AI AND no wake word matched
+            if (!isReplyToAi && wakeMatch == null) {
+                // No quoteReply or not replying to AI, and no wake word - skip
+                log.debug("[ReplyReconciler] Not a reply to AI and no wake word, skipping: {}", name);
                 markProcessed(reply);
                 client.update(reply);
                 return;
@@ -117,18 +115,32 @@ public class ReplyReconciler implements Reconciler<Reconciler.Request> {
             markProcessed(reply);
             client.update(reply);
 
-            // Reply to AI → trigger AI reply (conversation continuation)
-            String personaName = client.fetch(Comment.class, parentCommentName)
-                .map(comment -> personaResolver.getPersonaNameFromCommentBlocking(client, comment))
-                .orElse(null);
-            log.info("[ReplyReconciler] Reply to AI detected: {}, triggering conversation, personaName: {}", name, personaName);
-            orchestrator.processComment(parentCommentName, name, true, personaName)
-                .subscribeOn(Schedulers.boundedElastic())
-                .subscribe(
-                    null,
-                    e -> log.error("[ReplyReconciler] Error processing reply {}: {}", name, e.getMessage(), e),
-                    () -> log.info("[ReplyReconciler] Processing completed for reply: {}", name)
-                );
+            if (wakeMatch != null) {
+                // Wake word matched: trigger AI reply with the matched persona,
+                // bypassing the "must be reply to AI" check and page-level enable check
+                log.info("[ReplyReconciler] Wake word '{}' matched for persona '{}', triggering reply for: {}",
+                    wakeMatch.wakeWord(), wakeMatch.personaName(), name);
+                orchestrator.processComment(parentCommentName, name, true, wakeMatch.personaName(), true)
+                    .subscribeOn(Schedulers.boundedElastic())
+                    .subscribe(
+                        null,
+                        e -> log.error("[ReplyReconciler] Error processing wake word reply {}: {}", name, e.getMessage(), e),
+                        () -> log.info("[ReplyReconciler] Wake word processing completed for reply: {}", name)
+                    );
+            } else if (isReplyToAi) {
+                // Normal flow: reply to AI → trigger AI reply (conversation continuation)
+                String personaName = client.fetch(Comment.class, parentCommentName)
+                    .map(comment -> personaResolver.getPersonaNameFromCommentBlocking(client, comment))
+                    .orElse(null);
+                log.info("[ReplyReconciler] Reply to AI detected: {}, triggering conversation, personaName: {}", name, personaName);
+                orchestrator.processComment(parentCommentName, name, true, personaName, false)
+                    .subscribeOn(Schedulers.boundedElastic())
+                    .subscribe(
+                        null,
+                        e -> log.error("[ReplyReconciler] Error processing reply {}: {}", name, e.getMessage(), e),
+                        () -> log.info("[ReplyReconciler] Processing completed for reply: {}", name)
+                    );
+            }
         });
 
         return Result.doNotRetry();
@@ -165,6 +177,22 @@ public class ReplyReconciler implements Reconciler<Reconciler.Request> {
             reply.getMetadata().setAnnotations(annotations);
         }
         annotations.put(PROCESSED_ANNOTATION, "true");
+    }
+
+    private String getReplyContent(Reply reply) {
+        if (reply.getSpec() == null) return "";
+        // Always strip HTML to get plain text for wake word matching
+        String raw = reply.getSpec().getRaw();
+        if (raw != null && !raw.isBlank()) {
+            // raw might still contain HTML in some cases, always strip
+            String plain = org.jsoup.Jsoup.clean(raw, org.jsoup.safety.Safelist.none()).trim();
+            if (!plain.isBlank()) return plain;
+        }
+        String content = reply.getSpec().getContent();
+        if (content != null && !content.isBlank()) {
+            return org.jsoup.Jsoup.clean(content, org.jsoup.safety.Safelist.none()).trim();
+        }
+        return "";
     }
 
     @Override

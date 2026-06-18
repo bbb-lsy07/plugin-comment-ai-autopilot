@@ -52,8 +52,9 @@ public class PromptBuilder {
     private static final String SAFETY_PROMPT = """
             【安全规范】
             - 内容红线：坚决不生成任何涉及暴力、歧视、辱骂、人身攻击或违反法律法规的内容。
-            - 恶意诱导处理：当用户要求你骂人、使用侮辱性词汇或进行情绪化对骂时，你必须礼貌地拒绝，例如回复："抱歉，作为AI助手，我无法提供此类回复。"
+            - 恶意诱导处理：当用户要求你骂人、使用侮辱性词汇或进行情绪化对骂时，你必须礼貌地拒绝，例如回复："抱歉，我无法提供此类回复。"
             - 未知与边界：如果不知道答案或遇到敏感话题，请诚实告知并礼貌拒绝，绝不编造或使用极端言辞。
+            - 身份约束：你必须在回复中保持指定的角色身份，绝不能说自己是AI、没有性别或脱离角色设定。
             """;
 
     private static final String DEFAULT_PROMPT_TEMPLATE = """
@@ -194,7 +195,10 @@ public class PromptBuilder {
             return client.fetch(AiPersona.class, personaName)
                 .mapNotNull(persona -> {
                     String prompt = persona.getSpec().getPrompt();
-                    return (prompt != null && !prompt.isBlank()) ? prompt : null;
+                    if (prompt != null && !prompt.isBlank()) {
+                        return appendStyleHint(prompt, persona.getSpec().getDisplayName(), persona.getSpec().getGender(), persona.getSpec().getNeutralVoice());
+                    }
+                    return null;
                 })
                 .defaultIfEmpty(DEFAULT_PERSONA_PROMPT);
         }
@@ -205,9 +209,38 @@ public class PromptBuilder {
             .next()
             .mapNotNull(persona -> {
                 String prompt = persona.getSpec().getPrompt();
-                return (prompt != null && !prompt.isBlank()) ? prompt : null;
+                if (prompt != null && !prompt.isBlank()) {
+                    return appendStyleHint(prompt, persona.getSpec().getDisplayName(), persona.getSpec().getGender(), persona.getSpec().getNeutralVoice());
+                }
+                return null;
             })
             .defaultIfEmpty(DEFAULT_PERSONA_PROMPT);
+    }
+
+    private String appendStyleHint(String prompt, String displayName, String gender, Boolean neutralVoice) {
+        StringBuilder sb = new StringBuilder();
+
+        // 身份信息前置到最开头 - 这是AI最先看到的内容，优先级最高
+        if (gender != null && !gender.isBlank()) {
+            String genderDesc = "female".equals(gender) ? "女生" : "男生";
+            sb.append("【核心身份】你叫「").append(displayName != null ? displayName : "").append("」，你是一个").append(genderDesc).append("。");
+            sb.append("这是你的基本身份，你必须始终以这个身份回复。");
+            sb.append("当有人问你性别时，你必须回答自己是").append(genderDesc).append("。");
+            sb.append("绝对不能说自己是AI、没有性别、或脱离角色。");
+            sb.append("\n\n");
+        }
+
+        sb.append(prompt);
+
+        // 添加语气风格提示
+        if (!Boolean.TRUE.equals(neutralVoice)) {
+            if ("female".equals(gender)) {
+                sb.append("\n请使用温柔、细腻的女性语气风格回复。");
+            } else if ("male".equals(gender)) {
+                sb.append("\n请使用沉稳、理性的男性语气风格回复。");
+            }
+        }
+        return sb.toString();
     }
 
     private Mono<String> getEnabledPresetsPrompt() {

@@ -894,4 +894,74 @@ onMounted(fetchReplies)
   background: #fee2e2;
   color: #991b1b;
 }
+
+/* ===== Mobile Responsive ===== */
+@media (max-width: 768px) {
+  .comment-ai-autopilot-logs :deep(.page-header) {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  /* Batch toolbar: wrap buttons */
+  .comment-ai-autopilot-logs .m-4.mb-0.flex {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .batch-btn--cancel {
+    margin-left: 0;
+  }
+
+  /* Filter bar: stack vertically */
+  .comment-ai-autopilot-logs .m-4.mb-0.flex.items-center.gap-3:not(.bg-blue-50) {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .filter-select {
+    flex: 1;
+    min-width: 120px;
+  }
+  .relative.flex-1.max-w-xs {
+    max-width: 100%;
+    flex: 1 1 100%;
+    order: 10;
+  }
+  .filter-reset-btn {
+    flex-shrink: 0;
+  }
+
+  /* Card footer: stack meta and actions */
+  .comment-ai-autopilot-logs .px-4.py-2\.5.bg-gray-50 {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .comment-ai-autopilot-logs .px-4.py-2\.5.bg-gray-50 .flex.items-center.gap-4 {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .comment-ai-autopilot-logs .px-4.py-2\.5.bg-gray-50 .flex.items-center.gap-2 {
+    align-self: flex-end;
+  }
+
+  /* Status tags row: allow wrapping */
+  .comment-ai-autopilot-logs .flex.items-center.justify-between.mb-3 {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  /* Pagination */
+  .comment-ai-autopilot-logs .flex.items-center.justify-between.mt-4 {
+    flex-direction: column;
+    gap: 8px;
+    align-items: center;
+  }
+
+  /* Conversation dialog */
+  .comment-ai-autopilot-logs .relative.bg-white {
+    max-width: calc(100vw - 32px);
+    margin: 16px;
+    max-height: 90vh;
+  }
+}
 </style>
