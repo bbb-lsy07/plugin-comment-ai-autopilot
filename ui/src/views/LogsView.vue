@@ -299,8 +299,19 @@
                     :class="msg.isAi
                       ? 'bg-blue-50 text-gray-800 rounded-tl-md'
                       : 'bg-gray-100 text-gray-800 rounded-tr-md'"
-                    v-html="renderContent(msg.content)"
-                  ></div>
+                  >
+                    <!-- 引用摘要模块（仅当存在引用时显示） -->
+                    <div
+                      v-if="msg.quoteOwner && msg.quoteContent"
+                      class="mb-2 px-3 py-1.5 bg-black/5 rounded-lg border-l-2 border-gray-300 text-xs text-gray-500"
+                    >
+                      <span class="font-medium text-gray-600">@{{ msg.quoteOwner }}</span>:
+                      {{ truncateQuote(msg.quoteContent, 30) }}
+                    </div>
+
+                    <!-- 实际回复内容 -->
+                    <div v-html="renderContent(msg.content)"></div>
+                  </div>
                   <!-- Time -->
                   <div class="text-[10px] text-gray-300 mt-1" :class="msg.isAi ? 'text-left' : 'text-right'">
                     {{ formatDate(msg.time) }}
@@ -358,6 +369,8 @@ interface ConversationMessage {
   content: string
   time: string
   isAi: boolean
+  quoteOwner?: string
+  quoteContent?: string
 }
 
 const replies = ref<AiCommentReplyItem[]>([])
@@ -637,6 +650,15 @@ const stripHtml = (html: string) => {
     .replace(/<[^>]+>/g, "")
     .replace(/\n{3,}/g, "\n\n")
     .trim()
+}
+
+/**
+ * Truncate quote content for preview
+ */
+const truncateQuote = (content: string, length = 30) => {
+  if (!content) return ""
+  const plain = stripHtml(content)
+  return plain.length > length ? plain.substring(0, length) + "..." : plain
 }
 
 /**
