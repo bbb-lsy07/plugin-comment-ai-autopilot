@@ -3,20 +3,11 @@
     <VPageHeader title="插件设置">
       <template #icon><IconPlug class="header-icon" /></template>
       <template #actions>
-        <VSpace spacing="sm">
-          <VButton size="sm" @click="exportConfig">
-            <template #icon>
-              <svg style="width:14px;height:14px" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-            </template>
-            导出
-          </VButton>
-          <label class="inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-md border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 cursor-pointer transition-colors">
-            <svg style="width:14px;height:14px;margin-right:4px" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
-            导入
-            <input type="file" accept=".json" class="hidden" @change="handleImportFile" />
-          </label>
+        <div class="header-actions">
+          <VButton size="sm" @click="exportConfig">导出</VButton>
+          <label class="btn-import">导入<input type="file" accept=".json" class="hidden" @change="handleImportFile" /></label>
           <VButton size="sm" @click="$router.push({ name: 'CommentAiAutopilot' })">返回概览</VButton>
-        </VSpace>
+        </div>
       </template>
     </VPageHeader>
 
@@ -26,7 +17,7 @@
       <div v-else class="settings-layout">
         <!-- 左侧主体 -->
         <div class="settings-content">
-          <!-- 标签导航 -->
+          <!-- 标签导航 (移动端横向滚动) -->
           <div class="tabs-wrap">
             <button v-for="tab in tabItems" :key="tab.value" 
               class="tab-btn" :class="{ 'active': activeTab === tab.value }"
@@ -39,25 +30,39 @@
           <!-- 1. 基本设置 -->
           <div v-if="activeTab === 'basic'" class="setting-panel">
             <div class="panel-header section-header--blue">
-              <div class="section-header__icon">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-              </div>
               <div class="section-header__text"><h3>基本设置</h3><p>控制AI回复的基本行为</p></div>
             </div>
             <div class="panel-body">
-              <div class="form-row"><div class="form-row__label"><span class="form-label">自动回复</span><span class="form-hint">启用后，AI将自动回复新评论</span></div><label class="toggle"><input type="checkbox" v-model="settings.basic.autoReply" /><span class="toggle__track"><span class="toggle__thumb"></span></span></label></div>
-              <div class="form-row"><div class="form-row__label"><span class="form-label">自动发布</span><span class="form-hint">关闭后AI回复将存为草稿，需手动审核发布</span></div><label class="toggle"><input type="checkbox" v-model="settings.basic.autoPublish" /><span class="toggle__track"><span class="toggle__thumb"></span></span></label></div>
-              <div class="form-field"><div class="form-field__header"><span class="form-label">最大对话轮次</span><span class="form-badge">{{ settings.basic.maxConversationRounds }}</span></div><span class="form-hint">同一评论线程中AI最多自动回复的轮次</span><div class="slider"><input type="range" v-model.number="settings.basic.maxConversationRounds" min="1" max="100" class="slider__input" /><div class="slider__marks"><span>1</span><span>50</span><span>100</span></div></div></div>
-              <div class="form-field"><label class="form-label">速率限制</label><span class="form-hint">每分钟最大AI回复数量</span><input type="number" v-model.number="settings.basic.rateLimitPerMinute" min="1" max="100" class="form-input" placeholder="10" /></div>
-              <div class="form-field"><div class="form-field__header"><span class="form-label">最大重试次数</span><span class="form-badge">{{ settings.basic.maxRetryCount }}</span></div><span class="form-hint">AI生成失败时的最大重试次数</span><div class="slider"><input type="range" v-model.number="settings.basic.maxRetryCount" min="1" max="10" class="slider__input" /><div class="slider__marks"><span>1</span><span>5</span><span>10</span></div></div></div>
-              <div class="form-field"><div class="form-field__header"><span class="form-label">评论者黑名单</span><button class="btn-link" @click="openCommenterDialog"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>添加评论者</button></div><span class="form-hint">支持名称、邮箱和正则。以 regex: 开头</span><textarea v-model="settings.basic.blockedCommenters" rows="2" class="form-textarea" placeholder="例如：张三, spam@example.com"></textarea></div>
+              <div class="form-row">
+                <div class="form-row__label"><span class="form-label">自动回复</span><span class="form-hint">启用后，AI将自动回复新评论</span></div>
+                <label class="toggle"><input type="checkbox" v-model="settings.basic.autoReply" /><span class="toggle__track"><span class="toggle__thumb"></span></span></label>
+              </div>
+              <div class="form-row">
+                <div class="form-row__label"><span class="form-label">自动发布</span><span class="form-hint">关闭后需手动审核发布</span></div>
+                <label class="toggle"><input type="checkbox" v-model="settings.basic.autoPublish" /><span class="toggle__track"><span class="toggle__thumb"></span></span></label>
+              </div>
+              <div class="form-field">
+                <div class="form-field__header"><span class="form-label">最大对话轮次</span><span class="form-badge">{{ settings.basic.maxConversationRounds }}</span></div>
+                <input type="range" v-model.number="settings.basic.maxConversationRounds" min="1" max="100" class="slider__input" />
+              </div>
+              <div class="form-field">
+                <label class="form-label">速率限制</label>
+                <input type="number" v-model.number="settings.basic.rateLimitPerMinute" class="form-input" placeholder="10" />
+              </div>
+              <div class="form-field">
+                <div class="form-field__header"><span class="form-label">最大重试次数</span><span class="form-badge">{{ settings.basic.maxRetryCount }}</span></div>
+                <input type="range" v-model.number="settings.basic.maxRetryCount" min="1" max="10" class="slider__input" />
+              </div>
+              <div class="form-field">
+                <div class="form-field__header"><span class="form-label">评论者黑名单</span><button class="btn-link" @click="openCommenterDialog">添加评论者</button></div>
+                <textarea v-model="settings.basic.blockedCommenters" rows="2" class="form-textarea" placeholder="例如：张三, spam@example.com"></textarea>
+              </div>
             </div>
           </div>
 
           <!-- 2. AI角色设置 -->
           <div v-if="activeTab === 'persona'" class="setting-panel">
             <div class="panel-header section-header--purple">
-              <div class="section-header__icon"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg></div>
               <div class="section-header__text"><h3>AI角色设置</h3><p>定义AI虚拟评论者的身份和风格</p></div>
             </div>
             <div class="panel-body">
@@ -65,54 +70,54 @@
               <div v-else-if="personas.length === 0" class="persona-empty"><span>请添加至少一个AI角色</span></div>
               <div v-else class="persona-list">
                 <div v-for="p in personas" :key="p.metadata.name" class="persona-card">
-                  <div class="persona-card__avatar">
-                    <img v-if="getPersonaAvatar(p)" :src="getPersonaAvatar(p)" alt="头像" />
-                    <span v-else class="persona-card__avatar-fallback">{{ (p.spec.displayName || '?').charAt(0) }}</span>
-                  </div>
-                  <div class="persona-card__info">
-                    <div class="persona-card__name">
-                      {{ p.spec.displayName || '未命名' }}
-                      <span v-if="p.spec.gender === 'female'" class="persona-card__badge persona-card__badge--female">女</span>
-                      <span v-else-if="p.spec.gender === 'male'" class="persona-card__badge persona-card__badge--male">男</span>
-                      <span v-if="p.spec.neutralVoice" class="persona-card__badge persona-card__badge--neutral-voice">中性语气</span>
-                      <span v-if="p.spec.wakeWord" class="persona-card__badge persona-card__badge--wake-word">唤醒: {{ p.spec.wakeWord }}</span>
-                      <span v-if="p.spec.isDefault" class="persona-card__badge">默认</span>
+                  <div class="persona-card__main">
+                    <div class="persona-card__avatar">
+                      <img v-if="getPersonaAvatar(p)" :src="getPersonaAvatar(p)" alt="头像" />
+                      <span v-else class="persona-card__avatar-fallback">{{ (p.spec.displayName || '?').charAt(0) }}</span>
                     </div>
-                    <div class="persona-card__prompt">{{ p.spec.prompt || '暂无提示词' }}</div>
+                    <div class="persona-card__info">
+                      <div class="persona-card__name">
+                        {{ p.spec.displayName || '未命名' }}
+                        <span class="persona-card__badge" :class="'badge-' + p.spec.gender">{{ p.spec.gender === 'female' ? '女' : '男' }}</span>
+                        <span v-if="p.spec.neutralVoice" class="persona-card__badge">中性语气</span>
+                        <span v-if="p.spec.wakeWord" class="persona-card__badge badge-wake">唤醒: {{ p.spec.wakeWord }}</span>
+                        <span v-if="p.spec.isDefault" class="persona-card__badge badge-default">默认</span>
+                      </div>
+                      <div class="persona-card__prompt">{{ p.spec.prompt || '暂无提示词' }}</div>
+                    </div>
                   </div>
                   <div class="persona-card__actions">
-                    <button class="btn-icon" title="编辑" @click="openPersonaDialog(p)"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></button>
-                    <button v-if="!p.spec?.isDefault" class="btn-icon btn-icon--danger" title="删除" @click="deletePersona(p)"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>
-                    <button v-if="!p.spec?.isDefault" class="btn-icon" title="设为默认" @click="setDefaultPersona(p)"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/></svg></button>
+                    <button class="btn-action btn-edit" @click="openPersonaDialog(p)">编辑</button>
+                    <button v-if="!p.spec?.isDefault" class="btn-action btn-del" @click="deletePersona(p)">删除</button>
+                    <button v-if="!p.spec?.isDefault" class="btn-action btn-def" @click="setDefaultPersona(p)">设为默认</button>
                   </div>
                 </div>
               </div>
-              <button class="btn-add-persona" @click="openPersonaDialog(null)">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg> 添加角色
-              </button>
+              <button class="btn-add-persona" @click="openPersonaDialog(null)">+ 添加角色</button>
             </div>
           </div>
 
           <!-- 3. 模型设置 -->
           <div v-if="activeTab === 'model'" class="setting-panel">
             <div class="panel-header section-header--green">
-              <div class="section-header__icon"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg></div>
               <div class="section-header__text"><h3>模型设置</h3><p>配置AI Foundation提供的模型</p></div>
             </div>
             <div class="panel-body">
-              <div class="form-field"><label class="form-label">AI模型名称</label><span class="form-hint">留空使用AI Foundation默认模型</span><input type="text" v-model="settings.model.modelName" class="form-input" placeholder="留空使用默认模型" /></div>
+              <div class="form-field">
+                <label class="form-label">AI模型名称</label>
+                <input type="text" v-model="settings.model.modelName" class="form-input" placeholder="留空使用默认模型" />
+              </div>
             </div>
           </div>
 
           <!-- 4. Prompt设置 -->
           <div v-if="activeTab === 'prompt'" class="setting-panel">
             <div class="panel-header section-header--amber">
-              <div class="section-header__icon"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></div>
               <div class="section-header__text"><h3>Prompt设置</h3><p>自定义AI回复的提示词模板</p></div>
             </div>
             <div class="panel-body">
               <div class="form-field">
-                <label class="form-label">Prompt预设</label><span class="form-hint">选择预设风格，可多选</span>
+                <label class="form-label">Prompt预设</label>
                 <div class="preset-grid">
                   <label v-for="p in promptPresets" :key="p.key" class="preset-item" :class="{ 'preset-item--active': isPresetEnabled(p.key) }">
                     <input type="checkbox" :checked="isPresetEnabled(p.key)" @change="togglePreset(p.key)" class="preset-checkbox" />
@@ -130,13 +135,21 @@
           <!-- 5. 数据清理 -->
           <div v-if="activeTab === 'cleanup'" class="setting-panel">
             <div class="panel-header section-header--red">
-              <div class="section-header__icon"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></div>
               <div class="section-header__text"><h3>数据清理</h3><p>自动清理过期的AI回复记录</p></div>
             </div>
             <div class="panel-body">
-              <div class="form-row"><div class="form-row__label"><span class="form-label">启用自动清理</span><span class="form-hint">每天自动清理</span></div><label class="toggle"><input type="checkbox" v-model="settings.cleanup.cleanupEnabled" /><span class="toggle__track"><span class="toggle__thumb"></span></span></label></div>
-              <div class="form-field"><div class="form-field__header"><span class="form-label">保留天数</span><span class="form-badge">{{ settings.cleanup.retentionDays }} 天</span></div><div class="slider"><input type="range" v-model.number="settings.cleanup.retentionDays" min="1" max="365" class="slider__input" /><div class="slider__marks"><span>1天</span><span>180天</span><span>365天</span></div></div></div>
-              <div class="form-row form-row--bordered"><div class="form-row__label"><span class="form-label">手动清理</span></div><VButton size="sm" type="secondary" @click="performCleanup" :disabled="cleanupLoading">{{ cleanupLoading ? '清理中...' : '立即清理' }}</VButton></div>
+              <div class="form-row">
+                <div class="form-row__label"><span class="form-label">启用自动清理</span><span class="form-hint">每天自动清理</span></div>
+                <label class="toggle"><input type="checkbox" v-model="settings.cleanup.cleanupEnabled" /><span class="toggle__track"><span class="toggle__thumb"></span></span></label>
+              </div>
+              <div class="form-field">
+                <div class="form-field__header"><span class="form-label">保留天数</span><span class="form-badge">{{ settings.cleanup.retentionDays }} 天</span></div>
+                <input type="range" v-model.number="settings.cleanup.retentionDays" min="1" max="365" class="slider__input" />
+              </div>
+              <div class="form-row form-row--bordered">
+                <span class="form-label">手动清理</span>
+                <VButton size="sm" type="secondary" @click="performCleanup" :disabled="cleanupLoading">{{ cleanupLoading ? '清理中...' : '立即清理' }}</VButton>
+              </div>
               <div v-if="cleanupResult !== null" class="cleanup-result">清理完成，共删除 {{ cleanupResult }} 条记录</div>
             </div>
           </div>
@@ -150,7 +163,7 @@
             <button class="btn-reset" @click="fetchSettings" :disabled="saving">还原当前值</button>
           </div>
           <div v-if="activeTab === 'prompt'" class="sidebar-card info-card">
-            <h4 style="font-size:14px;margin-bottom:8px">可用变量</h4>
+            <h4 class="info-title">可用变量</h4>
             <div class="sidebar-var" v-for="v in promptVariables" :key="v.name"><code>{{ v.name }}</code><span>{{ v.desc }}</span></div>
           </div>
         </div>
@@ -162,12 +175,10 @@
       <div class="dialog">
         <div class="dialog__header">
           <h3>选择评论者</h3>
-          <button class="dialog__close" @click="showCommenterDialog = false"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+          <button class="dialog__close" @click="showCommenterDialog = false">×</button>
         </div>
-        <div class="dialog__search">
-          <input v-model="commenterSearch" type="text" class="form-input" placeholder="搜索评论者名称或邮箱..." />
-        </div>
-        <div class="dialog__body">
+        <div class="dialog__body p-4">
+          <input v-model="commenterSearch" type="text" class="form-input mb-3" placeholder="搜索名称或邮箱..." />
           <VLoading v-if="commenterLoading" />
           <div v-else class="dialog__list">
             <button v-for="c in filteredCommenters" :key="c.displayName + c.email" class="dialog__item" @click="addCommenter(c)">
@@ -181,30 +192,27 @@
 
     <!-- 弹窗：AI角色编辑 -->
     <div v-if="showPersonaDialog" class="dialog-overlay" @click.self="showPersonaDialog = false">
-      <div class="dialog" style="max-width:520px">
+      <div class="dialog">
         <div class="dialog__header">
           <h3>{{ personaEditing ? '编辑角色' : '添加角色' }}</h3>
-          <button class="dialog__close" @click="showPersonaDialog = false"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+          <button class="dialog__close" @click="showPersonaDialog = false">×</button>
         </div>
-        <div class="dialog__body" style="padding: 20px;">
-          <div class="persona-dialog-preview" style="margin-bottom:16px">
+        <div class="dialog__body p-4">
+          <div class="persona-dialog-preview">
             <div class="persona-card__avatar"><img v-if="personaDialogAvatar" :src="personaDialogAvatar" alt="" /><span v-else class="persona-card__avatar-fallback">{{ (personaForm.displayName || '?').charAt(0) }}</span></div>
-            <div style="font-size:13px;color:#6b7280">{{ personaDialogAvatar ? 'Gravatar预览' : '未设置邮箱' }}</div>
+            <div class="preview-text">{{ personaDialogAvatar ? 'Gravatar预览' : '未设置邮箱' }}</div>
           </div>
-          <div class="form-field" style="margin-bottom:16px"><label class="form-label">昵称</label><input type="text" v-model="personaForm.displayName" class="form-input" /></div>
-          <div class="form-field" style="margin-bottom:16px"><label class="form-label">邮箱</label><input type="email" v-model="personaForm.email" class="form-input" /></div>
-          <div class="form-field" style="margin-bottom:16px">
+          <div class="form-field mt-3"><label class="form-label">昵称</label><input type="text" v-model="personaForm.displayName" class="form-input" /></div>
+          <div class="form-field mt-3"><label class="form-label">邮箱</label><input type="email" v-model="personaForm.email" class="form-input" /></div>
+          <div class="form-field mt-3">
             <label class="form-label">性别</label>
-            <select v-model="personaForm.gender" class="form-input">
-              <option value="female">女</option>
-              <option value="male">男</option>
-            </select>
+            <select v-model="personaForm.gender" class="form-input"><option value="female">女</option><option value="male">男</option></select>
           </div>
-          <div class="form-row" style="margin-bottom:16px;border:none;background:transparent;padding:0"><label class="form-label">中性语气</label><label class="toggle"><input type="checkbox" v-model="personaForm.neutralVoice" /><span class="toggle__track"><span class="toggle__thumb"></span></span></label></div>
-          <div class="form-field" style="margin-bottom:16px"><label class="form-label">唤醒词</label><input type="text" v-model="personaForm.wakeWord" class="form-input" /></div>
-          <div class="form-field" style="margin-bottom:16px"><label class="form-label">提示词</label><textarea v-model="personaForm.prompt" rows="3" class="form-textarea"></textarea></div>
-          <div class="form-row" style="border:none;background:transparent;padding:0"><label class="form-label">设为默认</label><label class="toggle"><input type="checkbox" v-model="personaForm.isDefault" /><span class="toggle__track"><span class="toggle__thumb"></span></span></label></div>
-          <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:20px">
+          <div class="form-row mt-3 px-0 bg-transparent border-0"><label class="form-label">中性语气</label><label class="toggle"><input type="checkbox" v-model="personaForm.neutralVoice" /><span class="toggle__track"><span class="toggle__thumb"></span></span></label></div>
+          <div class="form-field mt-3"><label class="form-label">唤醒词</label><input type="text" v-model="personaForm.wakeWord" class="form-input" /></div>
+          <div class="form-field mt-3"><label class="form-label">提示词</label><textarea v-model="personaForm.prompt" rows="3" class="form-textarea"></textarea></div>
+          <div class="form-row mt-3 px-0 bg-transparent border-0"><label class="form-label">设为默认</label><label class="toggle"><input type="checkbox" v-model="personaForm.isDefault" /><span class="toggle__track"><span class="toggle__thumb"></span></span></label></div>
+          <div class="dialog-footer mt-4">
             <VButton @click="showPersonaDialog = false">取消</VButton>
             <VButton type="primary" @click="savePersona" :disabled="personaSaving">{{ personaSaving ? '保存中...' : '保存' }}</VButton>
           </div>
@@ -314,122 +322,151 @@ onMounted(async () => { await fetchSettings(); await fetchPersonas(); await comp
 </script>
 
 <style scoped>
-.settings-container { padding-bottom: 30px; }
-.settings-main { margin: 20px; }
-.settings-layout { display: flex; flex-direction: column; gap: 24px; }
-@media (min-width: 1024px) { .settings-layout { flex-direction: row; align-items: flex-start; } }
-.settings-content { flex: 1; width: 100%; }
-.settings-sidebar { width: 100%; display: flex; flex-direction: column; gap: 16px; }
-@media (min-width: 1024px) { .settings-sidebar { width: 280px; position: sticky; top: 20px; flex-shrink: 0; } }
+/* 核心重置与基础布局 */
+.settings-container { padding-bottom: 30px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+.header-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.btn-import { font-size: 13px; font-weight: 500; background: #fff; border: 1px solid #d1d5db; padding: 4px 10px; border-radius: 6px; cursor: pointer; color: #374151; white-space: nowrap; transition: 0.2s; display: inline-flex; align-items: center; }
+.btn-import:hover { background: #f9fafb; border-color: #9ca3af; }
+.settings-main { margin: 16px; }
 
-/* 标签导航 */
-.tabs-wrap { display: flex; gap: 8px; background: #fff; padding: 6px; border-radius: 10px; border: 1px solid #e5e7eb; margin-bottom: 24px; overflow-x: auto; }
-.tab-btn { flex: 1; padding: 10px 16px; border: none; background: transparent; border-radius: 6px; cursor: pointer; color: #4b5563; font-weight: bold; font-size: 14px; white-space: nowrap; transition: 0.2s; }
-.tab-btn:hover { background: #f3f4f6; }
-.tab-btn.active { background: #2563eb; color: #fff; }
+/* 响应式主网格 */
+.settings-layout { display: flex; flex-direction: column; gap: 24px; }
+@media (min-width: 1024px) {
+  .settings-main { margin: 24px; }
+  .settings-layout { flex-direction: row; align-items: flex-start; }
+}
+
+.settings-content { flex: 1; width: 100%; min-width: 0; }
+.settings-sidebar { width: 100%; display: flex; flex-direction: column; gap: 16px; flex-shrink: 0; }
+@media (min-width: 1024px) { .settings-sidebar { width: 300px; position: sticky; top: 24px; } }
+
+/* 导航 Tabs (支持横向滚动) */
+.tabs-wrap { display: flex; gap: 6px; background: #fff; padding: 6px; border-radius: 10px; border: 1px solid #e5e7eb; margin-bottom: 20px; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+.tabs-wrap::-webkit-scrollbar { display: none; }
+.tab-btn { flex: 1; padding: 10px 16px; border: none; background: transparent; border-radius: 6px; cursor: pointer; color: #6b7280; font-weight: 600; font-size: 14px; transition: 0.2s ease; }
+.tab-btn:hover { background: #f3f4f6; color: #374151; }
+.tab-btn.active { background: #2563eb; color: #fff; box-shadow: 0 2px 4px rgba(37,99,235,0.2); }
 
 /* 面板样式 */
-.setting-panel { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; }
-.panel-header { display: flex; align-items: center; gap: 12px; padding: 16px 20px; border-left: 4px solid; border-bottom: 1px solid #e5e7eb; }
-.section-header--blue { border-left-color: #3b82f6; background: #eff6ff; }
-.section-header--purple { border-left-color: #8b5cf6; background: #f5f3ff; }
-.section-header--green { border-left-color: #10b981; background: #ecfdf5; }
-.section-header--amber { border-left-color: #f59e0b; background: #fffbeb; }
-.section-header--red { border-left-color: #ef4444; background: #fef2f2; }
-.section-header__icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; background: #fff; color: inherit; }
-.section-header__icon svg { width: 18px; height: 18px; }
-.section-header__text h3 { margin: 0 0 4px; font-size: 16px; font-weight: bold; color: #1f2937; }
-.section-header__text p { margin: 0; font-size: 12px; color: #6b7280; }
+.setting-panel { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); overflow: hidden; }
+.panel-header { padding: 16px 20px; border-bottom: 1px solid #e5e7eb; }
+.section-header--blue { border-top: 4px solid #3b82f6; background: linear-gradient(to right, #eff6ff, #fff); }
+.section-header--purple { border-top: 4px solid #8b5cf6; background: linear-gradient(to right, #f5f3ff, #fff); }
+.section-header--green { border-top: 4px solid #10b981; background: linear-gradient(to right, #ecfdf5, #fff); }
+.section-header--amber { border-top: 4px solid #f59e0b; background: linear-gradient(to right, #fffbeb, #fff); }
+.section-header--red { border-top: 4px solid #ef4444; background: linear-gradient(to right, #fef2f2, #fff); }
+.section-header__text h3 { margin: 0 0 4px; font-size: 16px; font-weight: bold; color: #111827; }
+.section-header__text p { margin: 0; font-size: 13px; color: #6b7280; }
 .panel-body { padding: 20px; display: flex; flex-direction: column; gap: 20px; }
 
-/* 表单行 */
-.form-row { display: flex; justify-content: space-between; align-items: center; padding: 12px; background: #f9fafb; border-radius: 8px; }
-.form-row--bordered { border-top: 1px solid #e5e7eb; border-radius: 0; background: transparent; margin: 0 -20px; padding: 16px 20px; }
-.form-field { display: flex; flex-direction: column; gap: 6px; }
-.form-field__header { display: flex; justify-content: space-between; align-items: center; }
-.form-label { font-size: 14px; font-weight: bold; color: #374151; }
-.form-hint { font-size: 13px; color: #6b7280; }
+/* 表单行与控件 */
+.form-row { display: flex; justify-content: space-between; align-items: center; padding: 14px; background: #f8fafc; border-radius: 8px; flex-wrap: wrap; gap: 12px; border: 1px solid #f1f5f9; }
+.form-row--bordered { background: transparent; border: none; border-top: 1px solid #e5e7eb; border-radius: 0; padding: 16px 20px; margin: 0 -20px; }
+.form-field { display: flex; flex-direction: column; gap: 8px; }
+.form-field__header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+.form-label { font-size: 14px; font-weight: 600; color: #374151; }
+.form-hint { font-size: 13px; color: #6b7280; margin-top: 2px; display: block; }
 .form-badge { background: #eff6ff; color: #2563eb; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
 
-/* 输入框 */
-.form-input, .form-textarea { width: 100%; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; outline: none; }
-.form-input:focus, .form-textarea:focus { border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59,130,246,0.2); }
-.form-textarea--mono { font-family: monospace; }
+.form-input, .form-textarea { width: 100%; padding: 10px 14px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; outline: none; transition: 0.2s; background: #fff; box-sizing: border-box; }
+.form-input:focus, .form-textarea:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
+.form-textarea--mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 13px; line-height: 1.5; }
 
-/* 开关和滑块 */
-.toggle { position: relative; display: inline-block; cursor: pointer; width: 44px; height: 24px; }
-.toggle input { opacity: 0; width: 0; height: 0; }
-.toggle__track { position: absolute; inset: 0; background: #d1d5db; border-radius: 12px; transition: 0.2s; }
-.toggle__thumb { position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; background: #fff; border-radius: 50%; transition: 0.2s; }
-.toggle input:checked + .toggle__track { background: #3b82f6; }
+/* 按钮与开关 */
+.toggle { position: relative; display: inline-block; cursor: pointer; width: 44px; height: 24px; flex-shrink: 0; }
+.toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
+.toggle__track { position: absolute; inset: 0; background: #e5e7eb; border-radius: 12px; transition: 0.3s; }
+.toggle__thumb { position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; background: #fff; border-radius: 50%; transition: 0.3s; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+.toggle input:checked + .toggle__track { background: #10b981; }
 .toggle input:checked + .toggle__track .toggle__thumb { transform: translateX(20px); }
 
-.slider { padding: 5px 0; }
-.slider__input { width: 100%; accent-color: #3b82f6; }
-.slider__marks { display: flex; justify-content: space-between; font-size: 12px; color: #9ca3af; margin-top: 4px; }
+.slider__input { width: 100%; accent-color: #3b82f6; cursor: pointer; }
 
-/* 链接按钮 */
-.btn-link { background: none; border: none; color: #3b82f6; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 4px; padding: 0; }
-.btn-link:hover { color: #2563eb; }
-.btn-link svg { width: 14px; height: 14px; }
-.btn-add-persona { width: 100%; padding: 12px; background: #f3f4f6; color: #4b5563; border: 1px dashed #d1d5db; border-radius: 8px; cursor: pointer; font-weight: bold; display: flex; justify-content: center; align-items: center; gap: 6px; margin-top: 10px; }
-.btn-add-persona:hover { background: #e5e7eb; color: #1f2937; }
+/* 链接及预设块 */
+.btn-link { background: none; border: none; color: #3b82f6; cursor: pointer; font-size: 13px; font-weight: 500; padding: 0; }
+.btn-link:hover { color: #2563eb; text-decoration: underline; }
 
-/* 预设块 */
-.preset-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.preset-item { display: flex; gap: 10px; padding: 12px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; cursor: pointer; }
+.preset-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
+@media (min-width: 640px) { .preset-grid { grid-template-columns: 1fr 1fr; } }
+.preset-item { display: flex; gap: 10px; padding: 14px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; cursor: pointer; transition: 0.2s; }
+.preset-item:hover { border-color: #cbd5e1; }
 .preset-item--active { border-color: #3b82f6; background: #eff6ff; }
-.preset-checkbox { width: 16px; height: 16px; margin-top: 2px; accent-color: #3b82f6; }
-.preset-item__label { font-weight: bold; font-size: 14px; color: #1f2937; display: block; }
-.preset-item__desc { font-size: 12px; color: #6b7280; }
+.preset-checkbox { width: 16px; height: 16px; margin-top: 2px; accent-color: #3b82f6; flex-shrink: 0; cursor: pointer; }
+.preset-item__label { font-weight: 600; font-size: 14px; color: #1e293b; display: block; margin-bottom: 2px; }
+.preset-item__desc { font-size: 12px; color: #64748b; line-height: 1.4; }
 
-/* 侧边栏按钮 */
-.sidebar-card { background: #f0fdf4; border: 1px solid #bbf7d0; padding: 20px; border-radius: 12px; }
-.info-card { background: #fff; border-color: #e5e7eb; }
-.sidebar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-.sidebar-header h4 { margin: 0; font-size: 15px; font-weight: bold; color: #1f2937; }
-.unsaved-badge { background: #fef08a; color: #854d0e; padding: 2px 6px; border-radius: 4px; font-size: 12px; font-weight: bold; }
-.btn-save { width: 100%; padding: 12px; background: #16a34a; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-bottom: 10px; font-size: 14px; }
-.btn-save:disabled { opacity: 0.7; cursor: not-allowed; }
-.btn-reset { width: 100%; padding: 10px; background: #fff; color: #374151; border: 1px solid #d1d5db; border-radius: 8px; cursor: pointer; font-size: 14px; }
-.sidebar-var { margin-bottom: 8px; font-size: 13px; color: #4b5563; }
-.sidebar-var code { background: #f3f4f6; color: #9333ea; padding: 2px 4px; border-radius: 4px; font-size: 12px; margin-right: 6px; display: inline-block; }
-
-/* 角色卡片 */
-.persona-empty { padding: 30px; text-align: center; color: #9ca3af; font-size: 14px; }
+/* 角色卡片 (彻底修复排版，增加优雅感) */
+.persona-empty { padding: 40px 20px; text-align: center; color: #9ca3af; font-size: 14px; background: #f8fafc; border-radius: 8px; border: 1px dashed #cbd5e1; }
 .persona-list { display: flex; flex-direction: column; gap: 12px; }
-.persona-card { display: flex; align-items: center; gap: 14px; padding: 14px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; }
-.persona-card__avatar { width: 40px; height: 40px; border-radius: 50%; overflow: hidden; background: #e5e7eb; flex-shrink: 0; }
-.persona-card__avatar img { width: 100%; height: 100%; object-fit: cover; }
-.persona-card__avatar-fallback { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; background: #8b5cf6; color: #fff; font-weight: bold; font-size: 16px; }
-.persona-card__info { flex: 1; min-width: 0; }
-.persona-card__name { font-size: 15px; font-weight: bold; color: #1f2937; display: flex; align-items: center; gap: 6px; }
-.persona-card__badge { background: #e5e7eb; color: #374151; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; }
-.persona-card__badge--female { background: #fce7f3; color: #be185d; }
-.persona-card__badge--male { background: #dbeafe; color: #1d4ed8; }
-.persona-card__prompt { font-size: 12px; color: #6b7280; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 4px; }
-.btn-icon { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; background: none; border: none; color: #6b7280; cursor: pointer; border-radius: 6px; }
-.btn-icon:hover { background: #e5e7eb; color: #1f2937; }
-.btn-icon--danger:hover { background: #fee2e2; color: #dc2626; }
-.btn-icon svg { width: 16px; height: 16px; }
+.persona-card { display: flex; flex-direction: column; gap: 16px; padding: 16px; background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); transition: all 0.2s; }
+.persona-card:hover { border-color: #cbd5e1; box-shadow: 0 4px 6px rgba(0,0,0,0.04); transform: translateY(-1px); }
+@media (min-width: 640px) { .persona-card { flex-direction: row; align-items: center; justify-content: space-between; } }
 
-/* 弹窗通用 */
-.dialog-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 999; }
-.dialog { width: 90%; max-width: 400px; background: #fff; border-radius: 12px; display: flex; flex-direction: column; max-height: 80vh; }
-.dialog__header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid #e5e7eb; }
-.dialog__header h3 { margin: 0; font-size: 16px; font-weight: bold; }
-.dialog__close { background: none; border: none; cursor: pointer; color: #9ca3af; }
-.dialog__close svg { width: 20px; height: 20px; }
-.dialog__search { padding: 16px; border-bottom: 1px solid #e5e7eb; }
-.dialog__body { overflow-y: auto; flex: 1; }
-.dialog__list { display: flex; flex-direction: column; padding: 8px; }
-.dialog__item { display: flex; align-items: center; gap: 12px; padding: 10px; background: none; border: none; cursor: pointer; border-radius: 8px; text-align: left; }
-.dialog__item:hover { background: #f3f4f6; }
-.dialog__item-avatar { width: 36px; height: 36px; border-radius: 50%; background: #d1d5db; color: #fff; display: flex; justify-content: center; align-items: center; font-weight: bold; overflow: hidden; flex-shrink: 0; }
+.persona-card__main { display: flex; align-items: center; gap: 16px; flex: 1; min-width: 0; }
+.persona-card__avatar { width: 44px; height: 44px; border-radius: 50%; overflow: hidden; background: #e5e7eb; flex-shrink: 0; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.1); }
+.persona-card__avatar img { width: 100%; height: 100%; object-fit: cover; }
+.persona-card__avatar-fallback { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; background: linear-gradient(135deg, #8b5cf6, #6d28d9); color: #fff; font-weight: bold; font-size: 18px; }
+
+.persona-card__info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.persona-card__name { font-size: 15px; font-weight: 700; color: #1e293b; display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+.persona-card__badge { padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 600; background: #f1f5f9; color: #475569; }
+.badge-female { background: #fce7f3; color: #be185d; }
+.badge-male { background: #dbeafe; color: #1d4ed8; }
+.badge-wake { background: #fef3c7; color: #b45309; }
+.badge-default { background: #10b981; color: #fff; }
+.persona-card__prompt { font-size: 13px; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.persona-card__actions { display: flex; gap: 8px; width: 100%; flex-wrap: wrap; }
+@media (min-width: 640px) { .persona-card__actions { width: auto; flex-shrink: 0; flex-wrap: nowrap; } }
+.btn-action { padding: 6px 12px; font-size: 12px; font-weight: 600; border-radius: 6px; cursor: pointer; border: 1px solid transparent; background: #f1f5f9; color: #475569; transition: 0.2s; flex: 1; text-align: center; }
+@media (min-width: 640px) { .btn-action { flex: none; } }
+.btn-action:hover { background: #e2e8f0; color: #0f172a; }
+.btn-del { color: #ef4444; background: #fef2f2; border-color: #fee2e2; }
+.btn-del:hover { background: #fee2e2; color: #dc2626; }
+.btn-edit { background: #fff; border-color: #cbd5e1; }
+.btn-edit:hover { border-color: #94a3b8; background: #f8fafc; }
+
+.btn-add-persona { width: 100%; padding: 12px; background: #f8fafc; color: #3b82f6; border: 1px dashed #cbd5e1; border-radius: 10px; cursor: pointer; font-weight: 600; font-size: 14px; transition: 0.2s; margin-top: 10px; }
+.btn-add-persona:hover { background: #eff6ff; border-color: #93c5fd; }
+
+/* 侧边栏按钮区 */
+.sidebar-card { background: #fff; border: 1px solid #e5e7eb; padding: 20px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
+.sidebar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.sidebar-header h4 { margin: 0; font-size: 15px; font-weight: bold; color: #1e293b; }
+.unsaved-badge { background: #fef08a; color: #854d0e; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
+.btn-save { width: 100%; padding: 12px; background: #2563eb; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-bottom: 10px; font-size: 14px; transition: 0.2s; box-shadow: 0 2px 4px rgba(37,99,235,0.2); }
+.btn-save:hover:not(:disabled) { background: #1d4ed8; }
+.btn-save:disabled { opacity: 0.7; cursor: not-allowed; }
+.btn-reset { width: 100%; padding: 10px; background: #fff; color: #475569; border: 1px solid #cbd5e1; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500; transition: 0.2s; }
+.btn-reset:hover:not(:disabled) { background: #f8fafc; color: #0f172a; }
+.info-title { font-size: 14px; font-weight: 600; margin: 0 0 12px 0; color: #334155; }
+.sidebar-var { margin-bottom: 10px; font-size: 13px; color: #64748b; display: flex; flex-direction: column; gap: 4px; }
+.sidebar-var code { background: #f1f5f9; color: #8b5cf6; padding: 2px 6px; border-radius: 4px; font-size: 12px; width: max-content; }
+
+/* 弹窗通用 (手机端撑满，电脑端居中) */
+.dialog-overlay { position: fixed; inset: 0; background: rgba(15,23,42,0.6); display: flex; align-items: center; justify-content: center; z-index: 9999; backdrop-filter: blur(2px); padding: 16px; box-sizing: border-box; }
+.dialog { width: 100%; max-width: 480px; background: #fff; border-radius: 16px; display: flex; flex-direction: column; max-height: 90vh; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+.dialog__header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid #f1f5f9; }
+.dialog__header h3 { margin: 0; font-size: 16px; font-weight: bold; color: #1e293b; }
+.dialog__close { background: none; border: none; cursor: pointer; color: #94a3b8; font-size: 24px; line-height: 1; padding: 0 4px; border-radius: 4px; }
+.dialog__close:hover { color: #475569; background: #f1f5f9; }
+.dialog__body { overflow-y: auto; flex: 1; padding: 20px; }
+.dialog-footer { display: flex; justify-content: flex-end; gap: 10px; }
+
+/* 弹窗内名单与预览 */
+.dialog__list { display: flex; flex-direction: column; gap: 4px; }
+.dialog__item { display: flex; align-items: center; gap: 12px; padding: 10px 12px; background: none; border: 1px solid transparent; cursor: pointer; border-radius: 8px; text-align: left; transition: 0.2s; width: 100%; }
+.dialog__item:hover { background: #f8fafc; border-color: #e2e8f0; }
+.dialog__item-avatar { width: 36px; height: 36px; border-radius: 50%; background: #94a3b8; color: #fff; display: flex; justify-content: center; align-items: center; font-weight: bold; overflow: hidden; flex-shrink: 0; }
 .dialog__item-avatar img { width: 100%; height: 100%; object-fit: cover; }
 .dialog__item-info { flex: 1; min-width: 0; }
-.dialog__item-name { font-size: 14px; font-weight: bold; color: #1f2937; }
-.dialog__item-email { font-size: 12px; color: #6b7280; }
-.persona-dialog-preview { display: flex; align-items: center; gap: 12px; background: #f9fafb; padding: 12px; border-radius: 8px; border: 1px solid #e5e7eb; }
-.cleanup-result { background: #ecfdf5; color: #059669; padding: 10px 14px; border-radius: 8px; font-size: 14px; font-weight: bold; margin-top: 10px; text-align: center; }
+.dialog__item-name { font-size: 14px; font-weight: 600; color: #1e293b; }
+.dialog__item-email { font-size: 12px; color: #64748b; margin-top: 2px; }
+
+.persona-dialog-preview { display: flex; align-items: center; gap: 12px; background: #f8fafc; padding: 16px; border-radius: 10px; border: 1px solid #e2e8f0; }
+.preview-text { font-size: 13px; color: #64748b; }
+.cleanup-result { background: #ecfdf5; color: #059669; padding: 12px; border-radius: 8px; font-size: 14px; font-weight: bold; margin-top: 12px; text-align: center; border: 1px solid #a7f3d0; }
+
+/* 实用工具 */
+.p-4 { padding: 16px; } .mt-3 { margin-top: 12px; } .mt-4 { margin-top: 16px; } .mb-3 { margin-bottom: 12px; } .px-0 { padding-left: 0; padding-right: 0; } .border-0 { border: none; } .bg-transparent { background: transparent; }
 </style>

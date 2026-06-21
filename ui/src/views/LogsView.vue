@@ -10,10 +10,12 @@
     <!-- 批量操作工具栏 -->
     <div v-if="selectedNames.size > 0" class="toolbar batch-toolbar">
       <span class="batch-text">已选择 {{ selectedNames.size }} 项</span>
-      <button class="btn-batch btn-pass" @click="batchApprove">批量通过</button>
-      <button class="btn-batch btn-reject" @click="batchReject">批量拒绝</button>
-      <button class="btn-batch btn-delete" @click="batchDelete">批量删除</button>
-      <button class="btn-batch btn-cancel" @click="selectedNames.clear(); selectAll = false">取消选择</button>
+      <div class="batch-actions">
+        <button class="btn-batch btn-pass" @click="batchApprove">批量通过</button>
+        <button class="btn-batch btn-reject" @click="batchReject">批量拒绝</button>
+        <button class="btn-batch btn-delete" @click="batchDelete">批量删除</button>
+        <button class="btn-batch btn-cancel" @click="selectedNames.clear(); selectAll = false">取消选择</button>
+      </div>
     </div>
 
     <!-- 过滤工具栏 -->
@@ -68,7 +70,7 @@
             <div class="footer-info">
               <span>评分: <strong>{{ reply.spec.score }}</strong></span>
               <span v-if="reply.spec.postSlug">
-                关联: <a :href="getPostUrl(reply.spec.postSlug)" target="_blank">{{ reply.spec.postSlug }}</a>
+                关联: <a :href="getPostUrl(reply.spec.postSlug)" target="_blank" class="post-link">{{ reply.spec.postSlug }}</a>
               </span>
               <span v-if="reply.spec.retryCount > 0" class="retry-text">重试 {{ reply.spec.retryCount }} 次</span>
             </div>
@@ -86,7 +88,7 @@
       
       <div v-if="totalPages > 1" class="pagination">
         <span>共 {{ total }} 条</span>
-        <div>
+        <div class="pagination-btns">
           <VButton size="sm" :disabled="page <= 1" @click="page--">上一页</VButton>
           <VButton size="sm" :disabled="page >= totalPages" @click="page++">下一页</VButton>
         </div>
@@ -99,7 +101,7 @@
         <div class="dialog-box">
           <div class="dialog-header">
             <h3>对话上下文</h3>
-            <button class="close-btn" @click="showDialog = false">×</button>
+            <button class="close-btn" @click="showDialog = false"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="24" height="24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
           </div>
           <div class="dialog-body">
             <VLoading v-if="conversationLoading" />
@@ -110,10 +112,13 @@
                   <div class="chat-owner">{{ msg.owner }}</div>
                   <div class="chat-bubble" :class="msg.isAi ? 'bubble-ai' : 'bubble-user'">
                     
-                    <!-- 原生 CSS 渲染的引用框 -->
+                    <!-- 现代化的精美引用框 (无左边框) -->
                     <div v-if="msg.quoteOwner && msg.quoteContent" class="quote-box">
-                      <span class="quote-owner">@{{ msg.quoteOwner }}:</span>
-                      <span class="quote-content">{{ truncateQuote(msg.quoteContent) }}</span>
+                      <div class="quote-header">
+                        <svg class="quote-icon" fill="currentColor" viewBox="0 0 24 24"><path d="M10 9V5l-7 7 7 7v-4.1c5 0 8.5 1.6 11 5.1-1-5-4-10-11-11z"/></svg>
+                        <span class="quote-owner">{{ msg.quoteOwner }}</span>
+                      </div>
+                      <div class="quote-content">{{ truncateQuote(msg.quoteContent) }}</div>
                     </div>
 
                     <div class="chat-text" v-html="renderContent(msg.content)"></div>
@@ -177,7 +182,6 @@ const formatDate = (ts: string) => ts ? new Date(ts).toLocaleString("zh-CN") : "
 const getPostUrl = (slug: string) => `${window.location.origin}/archives/${slug}`
 const stripHtml = (html: string) => html ? html.replace(/<[^>]+>/g, "").replace(/\n+/g, " ").trim() : ""
 
-// 彻底清除冗余 Markdown 的正则替换
 const truncateQuote = (content: string, length = 35) => {
   if (!content) return ""
   let plain = stripHtml(content)
@@ -188,7 +192,7 @@ const truncateQuote = (content: string, length = 35) => {
 const renderContent = (content: string) => {
   if (!content) return "<span style='opacity:0.5'>(空)</span>"
   let parsed = content.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "").replace(/<iframe[^>]*>[\s\S]*?<\/iframe>/gi, "")
-  parsed = parsed.replace(/^>\s*(?:💬\s*)?\*\*(.*?)\*\*\s*[:：]\s*/gm, "") // 清理脏数据
+  parsed = parsed.replace(/^>\s*(?:💬\s*)?\*\*(.*?)\*\*\s*[:：]\s*/gm, "")
   return parsed.replace(/\n/g, "<br/>")
 }
 
@@ -203,80 +207,94 @@ onMounted(fetchReplies)
 .logs-container { padding-bottom: 20px; }
 .header-icon { margin-right: 8px; align-self: center; }
 
-/* 工具栏与按钮 */
-.toolbar { display: flex; flex-wrap: wrap; gap: 12px; margin: 16px; align-items: center; }
+/* 响应式工具栏 */
+.toolbar { display: flex; flex-direction: column; gap: 12px; margin: 16px; align-items: stretch; }
+@media (min-width: 768px) { .toolbar { flex-direction: row; align-items: center; } }
 .batch-toolbar { background: #eff6ff; padding: 12px 16px; border-radius: 8px; border: 1px solid #bfdbfe; }
 .batch-text { font-size: 14px; color: #1d4ed8; font-weight: bold; }
-.btn-batch { padding: 6px 12px; border-radius: 6px; border: none; font-size: 12px; cursor: pointer; color: #fff; }
+.batch-actions { display: flex; flex-wrap: wrap; gap: 8px; width: 100%; }
+@media (min-width: 768px) { .batch-actions { width: auto; margin-left: auto; } }
+.btn-batch { padding: 6px 12px; border-radius: 6px; border: none; font-size: 12px; cursor: pointer; color: #fff; white-space: nowrap; }
 .btn-pass { background: #16a34a; } .btn-reject { background: #f97316; } .btn-delete { background: #dc2626; }
-.btn-cancel { background: transparent; color: #6b7280; margin-left: auto; }
-.filter-select, .filter-input { padding: 8px 12px; border: 1px solid #e5e7eb; border-radius: 6px; font-size: 14px; outline: none; }
-.btn-reset { padding: 8px 16px; border: 1px solid #e5e7eb; border-radius: 6px; background: #f9fafb; cursor: pointer; }
+.btn-cancel { background: transparent; color: #6b7280; border: 1px solid #d1d5db; }
+.filter-select, .filter-input { width: 100%; padding: 8px 12px; border: 1px solid #e5e7eb; border-radius: 6px; font-size: 14px; outline: none; }
+@media (min-width: 768px) { .filter-select { width: auto; min-width: 120px; } .filter-input { flex: 1; } }
+.btn-reset { padding: 8px 16px; border: 1px solid #e5e7eb; border-radius: 6px; background: #f9fafb; cursor: pointer; white-space: nowrap; width: 100%; }
+@media (min-width: 768px) { .btn-reset { width: auto; } }
 
 /* 列表区 */
 .list-area { margin: 16px; }
-.empty-state { text-align: center; padding: 60px 0; color: #9ca3af; }
+.empty-state { text-align: center; padding: 60px 0; color: #9ca3af; font-size: 14px; }
 .reply-list { display: flex; flex-direction: column; gap: 16px; }
-.select-all-wrap { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #6b7280; padding: 0 4px; }
-.reply-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; }
-.card-main { display: flex; gap: 12px; padding: 16px; }
+.select-all-wrap { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #6b7280; padding: 0 4px; }
+.reply-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 2px rgba(0,0,0,0.02); }
+.card-main { display: flex; gap: 12px; padding: 16px; align-items: flex-start; }
+.card-main input { margin-top: 4px; }
 .card-content { flex: 1; min-width: 0; }
-.card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.card-header { display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; }
+@media (min-width: 640px) { .card-header { flex-direction: row; justify-content: space-between; align-items: center; } }
 .tags-wrap { display: flex; gap: 6px; flex-wrap: wrap; }
 .card-time { font-size: 12px; color: #9ca3af; }
 .card-text { font-size: 14px; color: #374151; line-height: 1.6; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
-.card-footer { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: #f9fafb; border-top: 1px solid #f3f4f6; }
-.footer-info { font-size: 12px; color: #6b7280; display: flex; gap: 16px; }
-.footer-actions { display: flex; gap: 8px; }
-.action-btn { padding: 4px 8px; border-radius: 4px; font-size: 12px; border: none; cursor: pointer; }
+.card-footer { display: flex; flex-direction: column; gap: 12px; padding: 12px 16px; background: #f9fafb; border-top: 1px solid #f3f4f6; }
+@media (min-width: 640px) { .card-footer { flex-direction: row; justify-content: space-between; align-items: center; } }
+.footer-info { font-size: 12px; color: #6b7280; display: flex; flex-wrap: wrap; gap: 12px; }
+.post-link { color: #3b82f6; text-decoration: none; } .post-link:hover { text-decoration: underline; }
+.retry-text { color: #f59e0b; }
+.footer-actions { display: flex; flex-wrap: wrap; gap: 8px; width: 100%; justify-content: flex-end; }
+@media (min-width: 640px) { .footer-actions { width: auto; } }
+.action-btn { padding: 4px 10px; border-radius: 4px; font-size: 12px; border: none; cursor: pointer; white-space: nowrap; }
 .action-btn.pass { background: #dcfce7; color: #16a34a; }
 .action-btn.reject { background: #fee2e2; color: #dc2626; }
 .action-btn.view { background: #dbeafe; color: #2563eb; }
 .action-btn.delete { background: #e5e7eb; color: #4b5563; }
 
-/* 标签配色体系 (纯CSS，抛弃Tailwind限制) */
+/* 标签体系 */
 .custom-tag { padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; }
-.tag-PASS { background: #dcfce7; color: #15803d; }
-.tag-FAIL { background: #fee2e2; color: #b91c1c; }
-.tag-PENDING { background: #fef9c3; color: #a16207; }
-.tag-REJECTED { background: #ffedd5; color: #c2410c; }
-.tag-published { background: #dbeafe; color: #1d4ed8; }
-.tag-draft { background: #f3f4f6; color: #4b5563; }
+.tag-PASS { background: #dcfce7; color: #15803d; } .tag-FAIL { background: #fee2e2; color: #b91c1c; } .tag-PENDING { background: #fef9c3; color: #a16207; } .tag-REJECTED { background: #ffedd5; color: #c2410c; }
+.tag-published { background: #dbeafe; color: #1d4ed8; } .tag-draft { background: #f3f4f6; color: #4b5563; }
 .tag-conv { background: #f3e8ff; color: #7e22ce; }
-.tag-VERY_POSITIVE { background: #dcfce7; color: #14532d; }
-.tag-POSITIVE { background: #ecfdf5; color: #15803d; }
-.tag-NEGATIVE { background: #ffe4e6; color: #e11d48; }
-.tag-VERY_NEGATIVE { background: #fee2e2; color: #991b1b; }
+.tag-VERY_POSITIVE { background: #dcfce7; color: #14532d; } .tag-POSITIVE { background: #ecfdf5; color: #15803d; } .tag-NEGATIVE { background: #ffe4e6; color: #e11d48; } .tag-VERY_NEGATIVE { background: #fee2e2; color: #991b1b; }
 
-/* 对话弹窗与聊天气泡 */
-.dialog-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; z-index: 9999; }
-.dialog-box { width: 90%; max-width: 600px; background: #fff; border-radius: 16px; display: flex; flex-direction: column; max-height: 85vh; }
-.dialog-header { display: flex; justify-content: space-between; padding: 16px 24px; border-bottom: 1px solid #f3f4f6; }
-.dialog-header h3 { margin: 0; font-size: 18px; }
-.close-btn { background: none; border: none; font-size: 24px; cursor: pointer; color: #9ca3af; }
-.dialog-body { padding: 24px; overflow-y: auto; background: #f9fafb; flex: 1; border-bottom-left-radius: 16px; border-bottom-right-radius: 16px; }
+/* 对话弹窗与响应式气泡 */
+.dialog-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 9999; backdrop-filter: blur(2px); padding: 16px; box-sizing: border-box; }
+.dialog-box { width: 100%; max-width: 600px; background: #fff; border-radius: 16px; display: flex; flex-direction: column; max-height: 90vh; box-shadow: 0 10px 25px rgba(0,0,0,0.15); }
+.dialog-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid #f3f4f6; }
+.dialog-header h3 { margin: 0; font-size: 16px; font-weight: bold; }
+.close-btn { background: none; border: none; cursor: pointer; color: #9ca3af; padding: 0; display: flex; align-items: center; justify-content: center; }
+.close-btn:hover { color: #4b5563; }
+.dialog-body { padding: 20px; overflow-y: auto; background: #f8fafc; flex: 1; border-bottom-left-radius: 16px; border-bottom-right-radius: 16px; }
 
 .chat-container { display: flex; flex-direction: column; gap: 20px; }
 .chat-row { display: flex; width: 100%; }
 .row-ai { justify-content: flex-start; }
 .row-user { justify-content: flex-end; }
-.chat-message { max-width: 80%; display: flex; flex-direction: column; }
+.chat-message { max-width: 90%; display: flex; flex-direction: column; }
+@media (min-width: 640px) { .chat-message { max-width: 75%; } }
 .chat-owner { font-size: 12px; margin-bottom: 6px; font-weight: bold; }
-.row-ai .chat-owner { color: #2563eb; text-align: left; }
-.row-user .chat-owner { color: #6b7280; text-align: right; }
+.row-ai .chat-owner { color: #2563eb; text-align: left; margin-left: 4px; }
+.row-user .chat-owner { color: #6b7280; text-align: right; margin-right: 4px; }
 .chat-time { font-size: 11px; color: #9ca3af; margin-top: 6px; }
-.row-user .chat-time { text-align: right; }
+.row-ai .chat-time { text-align: left; margin-left: 4px; }
+.row-user .chat-time { text-align: right; margin-right: 4px; }
 
-/* 核心：独立的气泡和引用框 CSS */
-.chat-bubble { padding: 12px 16px; border-radius: 12px; font-size: 14px; line-height: 1.6; word-wrap: break-word; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
-.bubble-ai { background: #ffffff; color: #1f2937; border: 1px solid #e0e7ff; border-top-left-radius: 2px; }
+/* 气泡样式 */
+.chat-bubble { padding: 10px 14px; border-radius: 12px; font-size: 14px; line-height: 1.6; word-wrap: break-word; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+.bubble-ai { background: #ffffff; color: #1f2937; border: 1px solid #e2e8f0; border-top-left-radius: 2px; }
 .bubble-user { background: #2563eb; color: #ffffff; border-top-right-radius: 2px; }
 
-/* 绝对可靠的引用框样式 */
-.quote-box { margin-bottom: 10px; padding: 8px 12px; border-radius: 6px; font-size: 12px; border-left: 3px solid; }
-.quote-owner { font-weight: bold; margin-right: 6px; }
-.bubble-ai .quote-box { background: #f3f4f6; border-left-color: #9ca3af; color: #4b5563; }
-.bubble-user .quote-box { background: rgba(0,0,0,0.15); border-left-color: rgba(255,255,255,0.4); color: #d1d5db; }
+/* 全新精美引用框 (无左黑条，微信风格) */
+.quote-box { margin-bottom: 8px; padding: 8px 10px; border-radius: 8px; font-size: 12px; display: block; width: 100%; box-sizing: border-box; }
+.bubble-ai .quote-box { background: rgba(0,0,0,0.04); color: #6b7280; }
+.bubble-user .quote-box { background: rgba(255,255,255,0.15); color: #d1d5db; }
+.quote-header { display: flex; align-items: center; gap: 4px; margin-bottom: 2px; }
+.quote-icon { width: 12px; height: 12px; opacity: 0.7; }
+.quote-owner { font-weight: 600; font-size: 11px; }
+.bubble-ai .quote-owner { color: #374151; }
+.bubble-user .quote-owner { color: #ffffff; }
+.quote-content { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.4; }
 
-.pagination { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; font-size: 14px; color: #6b7280; }
+.pagination { display: flex; flex-direction: column; gap: 12px; align-items: center; margin-top: 20px; font-size: 14px; color: #6b7280; }
+@media (min-width: 640px) { .pagination { flex-direction: row; justify-content: space-between; } }
+.pagination-btns { display: flex; gap: 8px; }
 </style>
