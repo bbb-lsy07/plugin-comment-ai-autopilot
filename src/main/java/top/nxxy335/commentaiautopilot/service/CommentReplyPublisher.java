@@ -80,63 +80,97 @@ public class CommentReplyPublisher {
     private Mono<Reply> doPublish(String parentCommentName, String replyContent,
                                    String postName, String quoteReplyName, boolean autoPublish,
                                    String personaName) {
-        return resolvePersona(personaName).flatMap(persona -> {
-            String displayName = persona.displayName();
-            String email = persona.email();
 
-            Reply reply = new Reply();
-            reply.setMetadata(new Metadata());
-            reply.getMetadata().setName(generateReplyName());
-            reply.setSpec(new Reply.ReplySpec());
+        // 1. 获取被回复的对象信息，构建 Markdown 引用
+        Mono<String> quoteMarkdownMono = Mono.empty();
 
-            var spec = reply.getSpec();
-            spec.setCommentName(parentCommentName);
-            spec.setRaw(replyContent);
-            spec.setContent(replyContent);
-            spec.setApproved(autoPublish);
-            if (autoPublish) {
-                spec.setApprovedTime(Instant.now());
-            }
-            spec.setPriority(0);
-            spec.setTop(false);
-            spec.setAllowNotification(false);
-            spec.setHidden(false);
+        if (quoteReplyName != null && !quoteReplyName.isBlank()) {
+            // 如果是回复另一条回复
+            quoteMarkdownMono = client.fetch(Reply.class, quoteReplyName)
+                .map(r -> buildQuoteMarkdown(
+                    r.getSpec().getOwner() != null ? r.getSpec().getOwner().getDisplayName() : "匿名用户",
+                    r.getSpec().getRaw() != null ? r.getSpec().getRaw() : r.getSpec().getContent()
+                ));
+        } else if (parentCommentName != null && !parentCommentName.isBlank()) {
+            // 如果是直接回复顶级评论
+            quoteMarkdownMono = client.fetch(Comment.class, parentCommentName)
+                .map(c -> buildQuoteMarkdown(
+                    c.getSpec().getOwner() != null ? c.getSpec().getOwner().getDisplayName() : "匿名用户",
+                    c.getSpec().getRaw() != null ? c.getSpec().getRaw() : c.getSpec().getContent()
+                ));
+        }
 
-            if (quoteReplyName != null && !quoteReplyName.isBlank()) {
-                spec.setQuoteReply(quoteReplyName);
-            }
+        // 2. 解析 AI 角色并合并最终文本进行发布
+        return Mono.zip(resolvePersona(personaName), quoteMarkdownMono.defaultIfEmpty(""))
+            .flatMap(tuple -> {
+                ResolvedPersona persona = tuple.getT1();
+                String quoteMarkdown = tuple.getT2();
 
-            var owner = new Comment.CommentOwner();
-            owner.setKind(Comment.CommentOwner.KIND_EMAIL);
-            if (email != null && !email.isBlank()) {
-                owner.setName(email);
-            } else {
-                owner.setName(AI_PERSONA_OWNER_PREFIX + displayName);
-            }
-            owner.setDisplayName(displayName + " AI");
+                String displayName = persona.displayName();
+                String email = persona.email();
 
-            Map<String, String> ownerAnnotations = new HashMap<>();
-            ownerAnnotations.put("comment-ai-autopilot.nxxy335.top/is-ai", "true");
-            // 使用Gravatar邮箱头像
-            if (email != null && !email.isBlank()) {
-                String gravatarUrl = GravatarUtil.generateUrl(email);
-                ownerAnnotations.put(Comment.CommentOwner.AVATAR_ANNO, gravatarUrl);
-            }
-            owner.setAnnotations(ownerAnnotations);
-            spec.setOwner(owner);
+                // 将引用文本拼接到 AI 回复内容的最前面
+                String finalContent = quoteMarkdown.isBlank() ? replyContent : quoteMarkdown + "\n\n" + replyContent;
 
-            log.info("[Publisher] Creating reply for comment: {}, owner: kind={}, name={}, displayName={}, annotations={}",
-                parentCommentName, owner.getKind(), owner.getName(), owner.getDisplayName(), ownerAnnotations);
+                Reply reply = new Reply();
+                reply.setMetadata(new Metadata());
+                reply.getMetadata().setName(generateReplyName());
+                reply.setSpec(new Reply.ReplySpec());
 
-            return client.create(reply)
-                .doOnSuccess(created -> {
-                    var createdOwner = created.getSpec().getOwner();
-                    log.info("[Publisher] AI Persona '{}' reply published for comment: {}, quoteReply: {}, owner annotations after create: {}",
-                        displayName, parentCommentName, quoteReplyName,
-                        createdOwner != null ? createdOwner.getAnnotations() : "null");
-                })
-                .doOnError(e -> log.error("[Publisher] Failed to publish AI reply: {}", e.getMessage()));
-        });
+                var spec = reply.getSpec();
+                spec.setCommentName(parentCommentName);
+                spec.setRaw(finalContent);     // 保存带有引用的完整 Markdown
+                spec.setContent(finalContent); // 同上
+                spec.setApproved(autoPublish);
+                if (autoPublish) {
+                    spec.setApprovedTime(Instant.now());
+                }
+                spec.setPriority(0);
+                spec.setTop(false);
+                spec.setAllowNotification(false);
+                spec.setHidden(false);
+
+                if (quoteReplyName != null && !quoteReplyName.isBlank()) {
+                    spec.setQuoteReply(quoteReplyName);
+                }
+
+                var owner = new Comment.CommentOwner();
+                owner.setKind(Comment.CommentOwner.KIND_EMAIL);
+                if (email != null && !email.isBlank()) {
+                    owner.setName(email);
+                } else {
+                    owner.setName(AI_PERSONA_OWNER_PREFIX + displayName);
+                }
+                owner.setDisplayName(displayName + " AI");
+
+                Map<String, String> ownerAnnotations = new HashMap<>();
+                ownerAnnotations.put("comment-ai-autopilot.nxxy335.top/is-ai", "true");
+                if (email != null && !email.isBlank()) {
+                    String gravatarUrl = GravatarUtil.generateUrl(email);
+                    ownerAnnotations.put(Comment.CommentOwner.AVATAR_ANNO, gravatarUrl);
+                }
+                owner.setAnnotations(ownerAnnotations);
+                spec.setOwner(owner);
+
+                log.info("[Publisher] Creating reply for comment: {}, finalContent length: {}", parentCommentName, finalContent.length());
+
+                return client.create(reply)
+                    .doOnSuccess(created -> log.info("[Publisher] AI Persona '{}' reply published for comment: {}", displayName, parentCommentName))
+                    .doOnError(e -> log.error("[Publisher] Failed to publish AI reply: {}", e.getMessage()));
+            });
+    }
+
+    /**
+     * 新增辅助方法：构建 Markdown 引用块
+     */
+    private String buildQuoteMarkdown(String username, String rawText) {
+        if (rawText == null || rawText.isBlank()) return "";
+        // 清除 HTML 标签，防止破坏 Markdown 结构
+        String plainText = org.jsoup.Jsoup.clean(rawText, org.jsoup.safety.Safelist.none()).trim();
+        // 截断过长的引用内容（超过 40 个字符加省略号）
+        String truncated = plainText.length() > 40 ? plainText.substring(0, 40) + "..." : plainText;
+        // 生成标准 Markdown Blockquote
+        return "> 💬 **@" + username + "** : " + truncated;
     }
 
     /**
